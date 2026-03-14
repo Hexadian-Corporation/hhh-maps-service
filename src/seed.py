@@ -84,9 +84,6 @@ def seed_locations(service: LocationService) -> list[Location]:
 
 
 if __name__ == "__main__":
-    from src.main import create_app  # noqa: PLC0415
-
-    app = create_app()
     from opyoid import Injector
 
     from src.infrastructure.config.dependencies import AppModule
