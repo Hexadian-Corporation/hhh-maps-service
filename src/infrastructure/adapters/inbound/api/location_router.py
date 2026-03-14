@@ -1,0 +1,50 @@
+from fastapi import APIRouter, HTTPException
+
+from src.application.ports.inbound.location_service import LocationService
+from src.domain.exceptions.location_exceptions import LocationNotFoundError
+from src.infrastructure.adapters.inbound.api.location_api_mapper import LocationApiMapper
+from src.infrastructure.adapters.inbound.api.location_dto import LocationDTO
+
+router = APIRouter(prefix="/locations", tags=["locations"])
+
+_location_service: LocationService | None = None
+
+
+def init_router(location_service: LocationService) -> None:
+    global _location_service
+    _location_service = location_service
+
+
+@router.post("/", response_model=LocationDTO, status_code=201)
+def create_location(dto: LocationDTO) -> LocationDTO:
+    location = LocationApiMapper.to_domain(dto)
+    created = _location_service.create(location)
+    return LocationApiMapper.to_dto(created)
+
+
+@router.get("/{location_id}", response_model=LocationDTO)
+def get_location(location_id: str) -> LocationDTO:
+    try:
+        location = _location_service.get(location_id)
+    except LocationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return LocationApiMapper.to_dto(location)
+
+
+@router.get("/", response_model=list[LocationDTO])
+def list_locations(location_type: str | None = None, parent_id: str | None = None) -> list[LocationDTO]:
+    if location_type:
+        locations = _location_service.list_by_type(location_type)
+    elif parent_id:
+        locations = _location_service.list_children(parent_id)
+    else:
+        locations = _location_service.list_all()
+    return [LocationApiMapper.to_dto(loc) for loc in locations]
+
+
+@router.delete("/{location_id}", status_code=204)
+def delete_location(location_id: str) -> None:
+    try:
+        _location_service.delete(location_id)
+    except LocationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
