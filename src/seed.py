@@ -71,7 +71,9 @@ def seed_locations(service: LocationService) -> list[Location]:
     system_ids: dict[str, str] = {}
     for system in SYSTEMS:
         saved = service.create(dataclasses.replace(system))
-        system_ids[saved.name] = saved.id  # type: ignore[arg-type]
+        if saved.id is None:
+            raise ValueError(f"LocationService.create returned a Location without an id for system '{saved.name}'")
+        system_ids[saved.name] = saved.id
         created.append(saved)
 
     # 2. Create child locations with parent_id set
