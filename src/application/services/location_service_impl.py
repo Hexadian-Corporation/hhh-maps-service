@@ -1,12 +1,10 @@
-from opyoid import Injectable
-
 from src.application.ports.inbound.location_service import LocationService
 from src.application.ports.outbound.location_repository import LocationRepository
 from src.domain.exceptions.location_exceptions import LocationNotFoundError
 from src.domain.models.location import Location
 
 
-class LocationServiceImpl(LocationService, Injectable):
+class LocationServiceImpl(LocationService):
 
     def __init__(self, repository: LocationRepository) -> None:
         self._repository = repository
