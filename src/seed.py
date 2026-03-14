@@ -1,5 +1,7 @@
 """Seed script to populate the maps-service with test locations for hauling contracts."""
 
+import dataclasses
+
 from src.application.ports.inbound.location_service import LocationService
 from src.domain.models.location import Coordinates, Location
 
@@ -68,7 +70,7 @@ def seed_locations(service: LocationService) -> list[Location]:
     # 1. Create systems first so we can reference their IDs
     system_ids: dict[str, str] = {}
     for system in SYSTEMS:
-        saved = service.create(system)
+        saved = service.create(dataclasses.replace(system))
         system_ids[saved.name] = saved.id  # type: ignore[arg-type]
         created.append(saved)
 
@@ -77,3 +79,21 @@ def seed_locations(service: LocationService) -> list[Location]:
         created.append(service.create(location))
 
     return created
+
+
+if __name__ == "__main__":
+    from src.main import create_app  # noqa: PLC0415
+
+    app = create_app()
+    from opyoid import Injector
+
+    from src.infrastructure.config.dependencies import AppModule
+    from src.infrastructure.config.settings import Settings
+
+    settings = Settings()
+    injector = Injector([AppModule(settings)])
+    location_service = injector.inject(LocationService)
+    created = seed_locations(location_service)
+    print(f"Seeded {len(created)} locations.")
+    for loc in created:
+        print(f"  [{loc.location_type}] {loc.name} (id={loc.id})")

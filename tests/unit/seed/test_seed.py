@@ -1,6 +1,7 @@
 """Unit tests for src.seed – seed data definitions and insertion logic."""
 
-from unittest.mock import MagicMock, call
+import dataclasses
+from unittest.mock import MagicMock
 
 from src.domain.models.location import Coordinates, Location
 from src.seed import _LOCATION_DEFS, SYSTEMS, build_locations, seed_locations
@@ -125,14 +126,13 @@ class TestSeedLocations:
 
     @staticmethod
     def _make_service() -> MagicMock:
-        """Return a mock LocationService whose ``create`` assigns fake IDs."""
+        """Return a mock LocationService whose ``create`` returns a copy with a fake ID."""
         service = MagicMock()
         call_counter = {"n": 0}
 
         def fake_create(location: Location) -> Location:
             call_counter["n"] += 1
-            location.id = f"id-{call_counter['n']}"
-            return location
+            return dataclasses.replace(location, id=f"id-{call_counter['n']}")
 
         service.create.side_effect = fake_create
         return service
@@ -153,9 +153,13 @@ class TestSeedLocations:
         service = self._make_service()
         seed_locations(service)
         calls = service.create.call_args_list
-        # First two calls should be the system locations
-        assert calls[0] == call(SYSTEMS[0])
-        assert calls[1] == call(SYSTEMS[1])
+        # First two calls should be copies of the system locations
+        first_arg = calls[0][0][0]
+        second_arg = calls[1][0][0]
+        assert first_arg.name == SYSTEMS[0].name
+        assert first_arg.location_type == SYSTEMS[0].location_type
+        assert second_arg.name == SYSTEMS[1].name
+        assert second_arg.location_type == SYSTEMS[1].location_type
 
     def test_child_locations_have_parent_ids(self) -> None:
         service = self._make_service()
