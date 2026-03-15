@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     init_router(location_service)
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         seed_locations(location_service)
         yield
 
