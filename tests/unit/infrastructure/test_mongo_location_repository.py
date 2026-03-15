@@ -59,8 +59,8 @@ class TestSearchByName:
         oid1 = ObjectId()
         oid2 = ObjectId()
         collection.find.return_value = [
-            {"_id": oid1, "name": "Port Olisar", "location_type": "orbital", "coordinates": {}},
-            {"_id": oid2, "name": "Port Tressler", "location_type": "orbital", "coordinates": {}},
+            {"_id": oid1, "name": "Port Olisar", "location_type": "station", "coordinates": {}},
+            {"_id": oid2, "name": "Port Tressler", "location_type": "station", "coordinates": {}},
         ]
 
         result = repo.search_by_name("port")
