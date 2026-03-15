@@ -20,6 +20,9 @@ class LocationService(ABC):
     def list_children(self, parent_id: str) -> list[Location]: ...
 
     @abstractmethod
+    def update(self, location_id: str, location: Location) -> Location: ...
+
+    @abstractmethod
     def delete(self, location_id: str) -> None: ...
 
     @abstractmethod

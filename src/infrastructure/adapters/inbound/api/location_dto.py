@@ -18,3 +18,13 @@ class LocationDTO(BaseModel):
     landing_pad_size: str | None = None
 
     model_config = {"populate_by_name": True}
+
+
+class LocationUpdateDTO(BaseModel):
+    name: str | None = None
+    location_type: str | None = None
+    parent_id: str | None = None
+    coordinates: CoordinatesDTO | None = None
+    has_trade_terminal: bool | None = None
+    has_landing_pad: bool | None = None
+    landing_pad_size: str | None = None
