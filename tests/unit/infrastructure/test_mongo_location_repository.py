@@ -68,3 +68,27 @@ class TestSearchByName:
         assert len(result) == 2
         assert result[0].name == "Port Olisar"
         assert result[1].name == "Port Tressler"
+
+
+class TestFindChildren:
+    """Verify find_children queries with correct parent_id filter."""
+
+    def test_returns_children_for_parent_id(self) -> None:
+        collection = MagicMock()
+        oid = ObjectId()
+        collection.find.return_value = [
+            {
+                "_id": oid,
+                "name": "Lorville",
+                "location_type": "city",
+                "parent_id": "parent1",
+                "coordinates": {"x": 1.0, "y": 2.0, "z": 3.0},
+            }
+        ]
+        repo = MongoLocationRepository(collection)
+
+        result = repo.find_children("parent1")
+
+        collection.find.assert_called_once_with({"parent_id": "parent1"})
+        assert len(result) == 1
+        assert result[0].name == "Lorville"

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from src.domain.exceptions.location_exceptions import LocationNotFoundError
 from src.domain.models.location import Coordinates, Location
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
 
@@ -97,3 +98,29 @@ class TestSearchEndpoint:
         assert data["has_trade_terminal"] is True
         assert data["has_landing_pad"] is True
         assert data["landing_pad_size"] == "large"
+
+
+class TestGetLocationEndpoint:
+    """Verify GET /locations/{location_id} returns 404 when not found."""
+
+    def test_get_returns_404_for_nonexistent(self) -> None:
+        service = MagicMock()
+        service.get.side_effect = LocationNotFoundError("missing-id")
+        client = _make_client(service)
+
+        response = client.get("/locations/missing-id")
+
+        assert response.status_code == 404
+
+
+class TestDeleteLocationEndpoint:
+    """Verify DELETE /locations/{location_id} returns 404 when not found."""
+
+    def test_delete_returns_404_for_nonexistent(self) -> None:
+        service = MagicMock()
+        service.delete.side_effect = LocationNotFoundError("missing-id")
+        client = _make_client(service)
+
+        response = client.delete("/locations/missing-id")
+
+        assert response.status_code == 404
