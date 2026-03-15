@@ -1,4 +1,4 @@
-"""Unit tests for PUT /locations/{location_id} endpoint."""
+"""Unit tests for location router endpoints."""
 
 from unittest.mock import MagicMock
 
@@ -29,6 +29,34 @@ def _make_location(location_id: str = "abc123") -> Location:
         has_landing_pad=True,
         landing_pad_size="large",
     )
+
+
+class TestGetLocationEndpoint:
+    """Tests for GET /locations/{location_id} 404 path."""
+
+    def test_get_returns_404_for_nonexistent(self) -> None:
+        service = MagicMock()
+        service.get.side_effect = LocationNotFoundError("missing-id")
+        init_router(service)
+
+        client = _make_app()
+        response = client.get("/locations/missing-id")
+
+        assert response.status_code == 404
+
+
+class TestDeleteLocationEndpoint:
+    """Tests for DELETE /locations/{location_id} 404 path."""
+
+    def test_delete_returns_404_for_nonexistent(self) -> None:
+        service = MagicMock()
+        service.delete.side_effect = LocationNotFoundError("missing-id")
+        init_router(service)
+
+        client = _make_app()
+        response = client.delete("/locations/missing-id")
+
+        assert response.status_code == 404
 
 
 class TestUpdateLocationEndpoint:
