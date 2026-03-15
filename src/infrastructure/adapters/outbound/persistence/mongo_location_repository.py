@@ -7,7 +7,6 @@ from src.infrastructure.adapters.outbound.persistence.location_persistence_mappe
 
 
 class MongoLocationRepository(LocationRepository):
-
     def __init__(self, collection: Collection) -> None:
         self._collection = collection
 
@@ -31,15 +30,19 @@ class MongoLocationRepository(LocationRepository):
 
     def find_by_type(self, location_type: str) -> list[Location]:
         return [
-            LocationPersistenceMapper.to_domain(doc)
-            for doc in self._collection.find({"location_type": location_type})
+            LocationPersistenceMapper.to_domain(doc) for doc in self._collection.find({"location_type": location_type})
         ]
 
     def find_children(self, parent_id: str) -> list[Location]:
-        return [
-            LocationPersistenceMapper.to_domain(doc)
-            for doc in self._collection.find({"parent_id": parent_id})
-        ]
+        return [LocationPersistenceMapper.to_domain(doc) for doc in self._collection.find({"parent_id": parent_id})]
+
+    def update(self, location_id: str, location: Location) -> Location | None:
+        doc = LocationPersistenceMapper.to_document(location)
+        result = self._collection.replace_one({"_id": ObjectId(location_id)}, doc)
+        if result.matched_count == 0:
+            return None
+        location.id = location_id
+        return location
 
     def delete(self, location_id: str) -> bool:
         result = self._collection.delete_one({"_id": ObjectId(location_id)})

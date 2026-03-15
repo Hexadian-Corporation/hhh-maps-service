@@ -73,5 +73,6 @@ uv run hhh up
 | `GET` | `/locations/?location_type=` | Filter by type |
 | `GET` | `/locations/?parent_id=` | Get children of a location |
 | `GET` | `/locations/` | List all locations |
+| `PUT` | `/locations/{id}` | Update a location (partial) |
 | `DELETE` | `/locations/{id}` | Delete a location |
 | `GET` | `/health` | Health check |

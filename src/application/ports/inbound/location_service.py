@@ -4,7 +4,6 @@ from src.domain.models.location import Location
 
 
 class LocationService(ABC):
-
     @abstractmethod
     def create(self, location: Location) -> Location: ...
 
@@ -19,6 +18,9 @@ class LocationService(ABC):
 
     @abstractmethod
     def list_children(self, parent_id: str) -> list[Location]: ...
+
+    @abstractmethod
+    def update(self, location_id: str, location: Location) -> Location: ...
 
     @abstractmethod
     def delete(self, location_id: str) -> None: ...
