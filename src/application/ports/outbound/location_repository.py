@@ -4,7 +4,6 @@ from src.domain.models.location import Location
 
 
 class LocationRepository(ABC):
-
     @abstractmethod
     def save(self, location: Location) -> Location: ...
 
@@ -19,6 +18,9 @@ class LocationRepository(ABC):
 
     @abstractmethod
     def find_children(self, parent_id: str) -> list[Location]: ...
+
+    @abstractmethod
+    def update(self, location_id: str, location: Location) -> Location | None: ...
 
     @abstractmethod
     def delete(self, location_id: str) -> bool: ...
