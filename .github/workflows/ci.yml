@@ -44,8 +44,13 @@ jobs:
             const lintResult = '${{ needs.lint.result }}';
             const testResult = '${{ needs.test.result }}';
             const failures = [];
+<<<<<<< Updated upstream
             if (lintResult === 'failure') failures.push('**Lint & Format** — fix linting or formatting errors');
             if (testResult === 'failure') failures.push('**Tests & Coverage** — fix failing tests or improve coverage to ≥90%');
+=======
+            if (lintResult === 'failure') failures.push('**Lint & Format** \u2014 fix linting or formatting errors');
+            if (testResult === 'failure') failures.push('**Tests & Coverage** \u2014 fix failing tests or improve coverage to \u226590%');
+>>>>>>> Stashed changes
             const body = [
               '## CI Failed',
               '',
