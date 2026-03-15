@@ -24,3 +24,6 @@ class LocationService(ABC):
 
     @abstractmethod
     def delete(self, location_id: str) -> None: ...
+
+    @abstractmethod
+    def search_by_name(self, query: str) -> list[Location]: ...

@@ -38,3 +38,8 @@ class LocationServiceImpl(LocationService):
     def delete(self, location_id: str) -> None:
         if not self._repository.delete(location_id):
             raise LocationNotFoundError(location_id)
+
+    def search_by_name(self, query: str) -> list[Location]:
+        if not query:
+            return []
+        return self._repository.search_by_name(query)

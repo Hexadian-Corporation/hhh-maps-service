@@ -48,3 +48,7 @@ class MongoLocationRepository(LocationRepository):
     def delete(self, location_id: str) -> bool:
         result = self._collection.delete_one({"_id": ObjectId(location_id)})
         return result.deleted_count > 0
+
+    def search_by_name(self, query: str) -> list[Location]:
+        cursor = self._collection.find({"name": {"$regex": query, "$options": "i"}})
+        return [LocationPersistenceMapper.to_domain(doc) for doc in cursor]
