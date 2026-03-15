@@ -38,16 +38,18 @@ class LocationApiMapper:
         coordinates = existing.coordinates
         if dto.coordinates is not None:
             coordinates = Coordinates(x=dto.coordinates.x, y=dto.coordinates.y, z=dto.coordinates.z)
-        has_trade = dto.has_trade_terminal if dto.has_trade_terminal is not None else existing.has_trade_terminal
-        has_pad = dto.has_landing_pad if dto.has_landing_pad is not None else existing.has_landing_pad
-        pad_size = dto.landing_pad_size if dto.landing_pad_size is not None else existing.landing_pad_size
+        has_trade_terminal = (
+            dto.has_trade_terminal if dto.has_trade_terminal is not None else existing.has_trade_terminal
+        )
+        has_landing_pad = dto.has_landing_pad if dto.has_landing_pad is not None else existing.has_landing_pad
+        landing_pad_size = dto.landing_pad_size if dto.landing_pad_size is not None else existing.landing_pad_size
         return Location(
             id=existing.id,
             name=dto.name if dto.name is not None else existing.name,
             location_type=dto.location_type if dto.location_type is not None else existing.location_type,
             parent_id=dto.parent_id if dto.parent_id is not None else existing.parent_id,
             coordinates=coordinates,
-            has_trade_terminal=has_trade,
-            has_landing_pad=has_pad,
-            landing_pad_size=pad_size,
+            has_trade_terminal=has_trade_terminal,
+            has_landing_pad=has_landing_pad,
+            landing_pad_size=landing_pad_size,
         )

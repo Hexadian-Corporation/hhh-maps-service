@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from bson import ObjectId
 from pymongo.collection import Collection
 
@@ -41,8 +43,7 @@ class MongoLocationRepository(LocationRepository):
         result = self._collection.replace_one({"_id": ObjectId(location_id)}, doc)
         if result.matched_count == 0:
             return None
-        location.id = location_id
-        return location
+        return replace(location, id=location_id)
 
     def delete(self, location_id: str) -> bool:
         result = self._collection.delete_one({"_id": ObjectId(location_id)})
