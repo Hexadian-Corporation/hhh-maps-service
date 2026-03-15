@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from src.application.ports.inbound.location_service import LocationService
 from src.domain.exceptions.location_exceptions import LocationNotFoundError
@@ -6,6 +6,8 @@ from src.infrastructure.adapters.inbound.api.location_api_mapper import Location
 from src.infrastructure.adapters.inbound.api.location_dto import LocationDTO, LocationUpdateDTO
 
 router = APIRouter(prefix="/locations", tags=["locations"])
+
+_CACHE_CONTROL_MAX_AGE = "max-age=300"
 
 _location_service: LocationService | None = None
 
@@ -23,8 +25,9 @@ def create_location(dto: LocationDTO) -> LocationDTO:
 
 
 @router.get("/search", response_model=list[LocationDTO])
-def search_locations(q: str = "") -> list[LocationDTO]:
+def search_locations(q: str = "", response: Response = None) -> list[LocationDTO]:
     locations = _location_service.search_by_name(q)
+    response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
@@ -38,13 +41,16 @@ def get_location(location_id: str) -> LocationDTO:
 
 
 @router.get("/", response_model=list[LocationDTO])
-def list_locations(location_type: str | None = None, parent_id: str | None = None) -> list[LocationDTO]:
+def list_locations(
+    location_type: str | None = None, parent_id: str | None = None, response: Response = None
+) -> list[LocationDTO]:
     if location_type:
         locations = _location_service.list_by_type(location_type)
     elif parent_id:
         locations = _location_service.list_children(parent_id)
     else:
         locations = _location_service.list_all()
+    response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
