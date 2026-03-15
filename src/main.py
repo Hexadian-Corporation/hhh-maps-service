@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +10,7 @@ from src.application.ports.inbound.location_service import LocationService
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
 from src.infrastructure.config.dependencies import AppModule
 from src.infrastructure.config.settings import Settings
+from src.seed import seed_locations
 
 
 def create_app() -> FastAPI:
@@ -16,7 +20,12 @@ def create_app() -> FastAPI:
     location_service = injector.inject(LocationService)
     init_router(location_service)
 
-    app = FastAPI(title=settings.app_name)
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        seed_locations(location_service)
+        yield
+
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://localhost:3001"],

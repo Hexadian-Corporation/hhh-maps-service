@@ -135,6 +135,7 @@ class TestSeedLocations:
             return dataclasses.replace(location, id=f"id-{call_counter['n']}")
 
         service.create.side_effect = fake_create
+        service.list_by_type.return_value = []
         return service
 
     def test_returns_all_created_locations(self) -> None:
@@ -174,3 +175,19 @@ class TestSeedLocations:
         result = seed_locations(service)
         for loc in result:
             assert loc.id is not None
+
+    def test_idempotent_skips_when_systems_exist(self) -> None:
+        """seed_locations returns [] and creates nothing when systems already exist."""
+        service = self._make_service()
+        service.list_by_type.return_value = [
+            Location(id="existing-1", name="Stanton", location_type="system"),
+        ]
+        result = seed_locations(service)
+        assert result == []
+        service.create.assert_not_called()
+
+    def test_idempotent_checks_system_type(self) -> None:
+        """seed_locations queries list_by_type('system') for the guard."""
+        service = self._make_service()
+        seed_locations(service)
+        service.list_by_type.assert_called_once_with("system")
