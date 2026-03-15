@@ -26,15 +26,6 @@ class LocationServiceImpl(LocationService):
     def list_children(self, parent_id: str) -> list[Location]:
         return self._repository.find_children(parent_id)
 
-    def update(self, location_id: str, location: Location) -> Location:
-        existing = self._repository.find_by_id(location_id)
-        if existing is None:
-            raise LocationNotFoundError(location_id)
-        updated = self._repository.update(location_id, location)
-        if updated is None:
-            raise LocationNotFoundError(location_id)
-        return updated
-
     def delete(self, location_id: str) -> None:
         if not self._repository.delete(location_id):
             raise LocationNotFoundError(location_id)

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from src.application.ports.inbound.location_service import LocationService
 from src.domain.exceptions.location_exceptions import LocationNotFoundError
 from src.infrastructure.adapters.inbound.api.location_api_mapper import LocationApiMapper
-from src.infrastructure.adapters.inbound.api.location_dto import LocationDTO, LocationUpdateDTO
+from src.infrastructure.adapters.inbound.api.location_dto import LocationDTO
 
 router = APIRouter(prefix="/locations", tags=["locations"])
 
@@ -46,17 +46,6 @@ def list_locations(location_type: str | None = None, parent_id: str | None = Non
     else:
         locations = _location_service.list_all()
     return [LocationApiMapper.to_dto(loc) for loc in locations]
-
-
-@router.put("/{location_id}", response_model=LocationDTO)
-def update_location(location_id: str, dto: LocationUpdateDTO) -> LocationDTO:
-    try:
-        existing = _location_service.get(location_id)
-    except LocationNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    merged = LocationApiMapper.update_to_domain(dto, existing)
-    updated = _location_service.update(location_id, merged)
-    return LocationApiMapper.to_dto(updated)
 
 
 @router.delete("/{location_id}", status_code=204)
