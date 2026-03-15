@@ -22,6 +22,12 @@ def create_location(dto: LocationDTO) -> LocationDTO:
     return LocationApiMapper.to_dto(created)
 
 
+@router.get("/search", response_model=list[LocationDTO])
+def search_locations(q: str = "") -> list[LocationDTO]:
+    locations = _location_service.search_by_name(q)
+    return [LocationApiMapper.to_dto(loc) for loc in locations]
+
+
 @router.get("/{location_id}", response_model=LocationDTO)
 def get_location(location_id: str) -> LocationDTO:
     try:

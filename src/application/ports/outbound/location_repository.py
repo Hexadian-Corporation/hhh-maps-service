@@ -22,3 +22,6 @@ class LocationRepository(ABC):
 
     @abstractmethod
     def delete(self, location_id: str) -> bool: ...
+
+    @abstractmethod
+    def search_by_name(self, query: str) -> list[Location]: ...
