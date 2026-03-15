@@ -1,4 +1,4 @@
-<critical>Note: This is a living document and will be updated as we refine our processes. Always refer back to this for the latest guidelines. Update whenever necessary. Anytime you discover a new bug or issue, document it here to maintain a comprehensive history.</critical>
+<critical>Note: This is a living document and will be updated as we refine our processes. Always refer back to this for the latest guidelines. Update whenever necessary.</critical>
 
 # Copilot Instructions — hhh-maps-service
 
@@ -52,12 +52,25 @@ src/
 
 **Hierarchy:** System → Planet/Moon → Station/City/Outpost. Top-level systems have `parent_id = None`.
 
-## API Endpoints
+## Environment Variables
 
-- `POST /locations/` — create location
-- `GET /locations/{id}` — get by ID
-- `GET /locations/` — list all (optional filters: `location_type`, `parent_id`)
-- `DELETE /locations/{id}` — delete by ID
+| Variable | Default | Description |
+|---|---|---|
+| `HHH_MAPS_MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
+| `HHH_MAPS_MONGO_DB` | `hhh_maps` | Database name |
+| `HHH_MAPS_PORT` | `8003` | Service port |
+
+## API
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/locations/` | Create a location |
+| `GET` | `/locations/{id}` | Get location by ID |
+| `GET` | `/locations/?location_type=` | Filter by type |
+| `GET` | `/locations/?parent_id=` | Get children of a location |
+| `GET` | `/locations/` | List all locations |
+| `DELETE` | `/locations/{id}` | Delete a location |
+| `GET` | `/health` | Health check |
 
 ## Issue & PR Title Format
 
@@ -79,8 +92,10 @@ The issue title and PR title must be **identical**. PR body must include `Fixes 
 
 ## Tooling
 
-| Tool | Command |
-|------|---------|
-| Run tests | `uv run pytest` |
-| Lint | `uv run --with ruff ruff check .` |
-| Format | `uv run --with ruff ruff format .` |
+| Action | Command |
+|--------|---------|
+| Setup | `uv sync` |
+| Run (dev) | `uv run uvicorn src.main:app --reload --port 8003` |
+| Test | `uv run pytest` |
+| Lint | `uv run ruff check .` |
+| Format | `uv run ruff format .` |
