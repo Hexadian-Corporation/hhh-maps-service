@@ -20,6 +20,9 @@ class LocationRepository(ABC):
     def find_children(self, parent_id: str) -> list[Location]: ...
 
     @abstractmethod
+    def update(self, location_id: str, location: Location) -> Location | None: ...
+
+    @abstractmethod
     def delete(self, location_id: str) -> bool: ...
 
     @abstractmethod
