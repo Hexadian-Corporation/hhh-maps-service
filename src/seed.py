@@ -63,8 +63,17 @@ def build_locations(system_ids: dict[str, str]) -> list[Location]:
 def seed_locations(service: LocationService) -> list[Location]:
     """Insert all seed systems and locations via *service*.
 
-    Returns every created :class:`Location` (systems + child locations).
+    The function is **idempotent** — it checks for existing systems
+    before creating anything.  Safe to call on every app startup.
+
+    Returns every created :class:`Location` (systems + child locations),
+    or an empty list if data was already seeded.
     """
+    # Idempotency guard: skip if systems already exist
+    existing_systems = service.list_by_type("system")
+    if existing_systems:
+        return []
+
     created: list[Location] = []
 
     # 1. Create systems first so we can reference their IDs
