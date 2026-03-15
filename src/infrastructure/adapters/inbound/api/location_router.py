@@ -27,8 +27,7 @@ def create_location(dto: LocationDTO) -> LocationDTO:
 @router.get("/search", response_model=list[LocationDTO])
 def search_locations(q: str = "", response: Response = None) -> list[LocationDTO]:
     locations = _location_service.search_by_name(q)
-    if response is not None:
-        response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
+    response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
@@ -51,8 +50,7 @@ def list_locations(
         locations = _location_service.list_children(parent_id)
     else:
         locations = _location_service.list_all()
-    if response is not None:
-        response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
+    response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
