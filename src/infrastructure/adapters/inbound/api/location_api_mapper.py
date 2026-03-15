@@ -3,7 +3,6 @@ from src.infrastructure.adapters.inbound.api.location_dto import CoordinatesDTO,
 
 
 class LocationApiMapper:
-
     @staticmethod
     def to_domain(dto: LocationDTO) -> Location:
         return Location(

@@ -4,7 +4,6 @@ from src.domain.models.location import Location
 
 
 class LocationRepository(ABC):
-
     @abstractmethod
     def save(self, location: Location) -> Location: ...
 

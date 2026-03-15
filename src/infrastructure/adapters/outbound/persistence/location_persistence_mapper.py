@@ -2,7 +2,6 @@ from src.domain.models.location import Coordinates, Location
 
 
 class LocationPersistenceMapper:
-
     @staticmethod
     def to_document(location: Location) -> dict:
         doc = {

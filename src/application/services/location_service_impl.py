@@ -5,7 +5,6 @@ from src.domain.models.location import Location
 
 
 class LocationServiceImpl(LocationService):
-
     def __init__(self, repository: LocationRepository) -> None:
         self._repository = repository
 

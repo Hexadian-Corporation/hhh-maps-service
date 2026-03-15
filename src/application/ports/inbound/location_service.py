@@ -4,7 +4,6 @@ from src.domain.models.location import Location
 
 
 class LocationService(ABC):
-
     @abstractmethod
     def create(self, location: Location) -> Location: ...
 

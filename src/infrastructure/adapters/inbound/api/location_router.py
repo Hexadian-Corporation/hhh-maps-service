@@ -33,7 +33,7 @@ def get_location(location_id: str) -> LocationDTO:
     try:
         location = _location_service.get(location_id)
     except LocationNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from None
     return LocationApiMapper.to_dto(location)
 
 
@@ -53,4 +53,4 @@ def delete_location(location_id: str) -> None:
     try:
         _location_service.delete(location_id)
     except LocationNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from None
