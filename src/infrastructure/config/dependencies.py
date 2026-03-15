@@ -1,5 +1,6 @@
 from opyoid import Module, SingletonScope
 from pymongo import MongoClient
+from pymongo.collation import Collation
 from pymongo.collection import Collection
 
 from src.application.ports.inbound.location_service import LocationService
@@ -18,6 +19,10 @@ class AppModule(Module):
         client = MongoClient(self._settings.mongo_uri)
         db = client[self._settings.mongo_db]
         collection = db["locations"]
+
+        collection.create_index("location_type")
+        collection.create_index("parent_id")
+        collection.create_index("name", collation=Collation(locale="en", strength=2))
 
         self.bind(Collection, to_instance=collection, scope=SingletonScope)
         self.bind(LocationRepository, to_class=MongoLocationRepository, scope=SingletonScope)
