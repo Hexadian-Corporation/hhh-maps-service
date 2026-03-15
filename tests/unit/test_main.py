@@ -1,4 +1,4 @@
-"""Unit tests for src.main – lifespan seeding and CORS middleware."""
+"""Unit tests for src.main – app creation, lifespan seeding, and CORS middleware."""
 
 from unittest.mock import MagicMock, patch
 
