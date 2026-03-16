@@ -1,3 +1,4 @@
+from hexadian_auth_common.fastapi import JWTAuthDependency
 from opyoid import Module, SingletonScope
 from pymongo import MongoClient
 from pymongo.collation import Collation
@@ -27,3 +28,9 @@ class AppModule(Module):
         self.bind(Collection, to_instance=collection, scope=SingletonScope)
         self.bind(LocationRepository, to_class=MongoLocationRepository, scope=SingletonScope)
         self.bind(LocationService, to_class=LocationServiceImpl, scope=SingletonScope)
+
+        jwt_auth = JWTAuthDependency(
+            secret=self._settings.jwt_secret,
+            algorithm=self._settings.jwt_algorithm,
+        )
+        self.bind(JWTAuthDependency, to_instance=jwt_auth, scope=SingletonScope)

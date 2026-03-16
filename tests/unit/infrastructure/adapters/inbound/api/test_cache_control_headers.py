@@ -7,12 +7,14 @@ from fastapi.testclient import TestClient
 
 from src.domain.models.location import Coordinates, Location
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
+from tests.conftest import override_auth
 
 
 def _make_client(service: MagicMock) -> TestClient:
     init_router(service)
     app = FastAPI()
     app.include_router(router)
+    override_auth(app)
     return TestClient(app)
 
 
