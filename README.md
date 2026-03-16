@@ -63,16 +63,21 @@ uv run hhh up
 | `HHH_MAPS_MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
 | `HHH_MAPS_MONGO_DB` | `hhh_maps` | Database name |
 | `HHH_MAPS_PORT` | `8003` | Service port |
+| `HHH_MAPS_JWT_SECRET` | `""` | Shared secret for JWT signature verification |
+| `HHH_MAPS_JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 
 ## API
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/locations/` | Create a location |
-| `GET` | `/locations/{id}` | Get location by ID |
-| `GET` | `/locations/?location_type=` | Filter by type |
-| `GET` | `/locations/?parent_id=` | Get children of a location |
-| `GET` | `/locations/` | List all locations |
-| `PUT` | `/locations/{id}` | Update a location (partial) |
-| `DELETE` | `/locations/{id}` | Delete a location |
-| `GET` | `/health` | Health check |
+All endpoints except `/health` require a valid JWT bearer token. Write and delete operations require specific permissions.
+
+| Method | Endpoint | Permission | Description |
+|---|---|---|---|
+| `GET` | `/health` | **Public** | Health check |
+| `POST` | `/locations/` | `locations:write` | Create a location |
+| `GET` | `/locations/{id}` | `locations:read` | Get location by ID |
+| `GET` | `/locations/?location_type=` | `locations:read` | Filter by type |
+| `GET` | `/locations/?parent_id=` | `locations:read` | Get children of a location |
+| `GET` | `/locations/` | `locations:read` | List all locations |
+| `GET` | `/locations/search?q=` | `locations:read` | Search locations by name |
+| `PUT` | `/locations/{id}` | `locations:write` | Update a location (partial) |
+| `DELETE` | `/locations/{id}` | `locations:delete` | Delete a location |
