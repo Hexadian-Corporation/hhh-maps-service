@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from hexadian_auth_common.fastapi import JWTAuthDependency, _stub_jwt_auth, register_exception_handlers
 from opyoid import Injector
 
 from src.application.ports.inbound.location_service import LocationService
@@ -20,6 +21,8 @@ def create_app() -> FastAPI:
     location_service = injector.inject(LocationService)
     init_router(location_service)
 
+    jwt_auth = injector.inject(JWTAuthDependency)
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         seed_locations(location_service)
@@ -32,6 +35,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    register_exception_handlers(app)
+    app.dependency_overrides[_stub_jwt_auth] = jwt_auth
+
     app.include_router(router)
 
     @app.get("/health")
