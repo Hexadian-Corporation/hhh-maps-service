@@ -22,9 +22,7 @@ def init_router(location_service: LocationService) -> None:
     _location_service = location_service
 
 
-@router.post(
-    "/", response_model=LocationDTO, status_code=201, dependencies=_write
-)
+@router.post("/", response_model=LocationDTO, status_code=201, dependencies=_write)
 def create_location(dto: LocationDTO) -> LocationDTO:
     location = LocationApiMapper.to_domain(dto)
     created = _location_service.create(location)
