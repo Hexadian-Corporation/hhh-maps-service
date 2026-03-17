@@ -82,7 +82,7 @@ class TestInvalidToken:
 
     def test_expired_token_returns_401(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:read"], exp=0)
+        headers = auth_header(["hhh:locations:read"], exp=0)
         response = client.get("/locations/", headers=headers)
         assert response.status_code == 401
 
@@ -92,37 +92,37 @@ class TestInsufficientPermissions:
 
     def test_create_requires_write_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
         response = client.post("/locations/", json={"name": "Test", "location_type": "station"}, headers=headers)
         assert response.status_code == 403
 
     def test_get_locations_requires_read_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:write"])
+        headers = auth_header(["hhh:locations:write"])
         response = client.get("/locations/", headers=headers)
         assert response.status_code == 403
 
     def test_get_location_by_id_requires_read_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:write"])
+        headers = auth_header(["hhh:locations:write"])
         response = client.get("/locations/abc123", headers=headers)
         assert response.status_code == 403
 
     def test_search_requires_read_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:write"])
+        headers = auth_header(["hhh:locations:write"])
         response = client.get("/locations/search?q=port", headers=headers)
         assert response.status_code == 403
 
     def test_update_requires_write_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
         response = client.put("/locations/abc123", json={"name": "Updated"}, headers=headers)
         assert response.status_code == 403
 
     def test_delete_requires_delete_permission(self) -> None:
         client = _make_auth_client()
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
         response = client.delete("/locations/abc123", headers=headers)
         assert response.status_code == 403
 
@@ -134,7 +134,7 @@ class TestValidPermissions:
         service = MagicMock()
         service.list_all.return_value = [_make_location()]
         client = _make_auth_client(service)
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
 
         response = client.get("/locations/", headers=headers)
         assert response.status_code == 200
@@ -143,7 +143,7 @@ class TestValidPermissions:
         service = MagicMock()
         service.get.return_value = _make_location()
         client = _make_auth_client(service)
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
 
         response = client.get("/locations/abc123", headers=headers)
         assert response.status_code == 200
@@ -152,7 +152,7 @@ class TestValidPermissions:
         service = MagicMock()
         service.search_by_name.return_value = [_make_location()]
         client = _make_auth_client(service)
-        headers = auth_header(["locations:read"])
+        headers = auth_header(["hhh:locations:read"])
 
         response = client.get("/locations/search?q=port", headers=headers)
         assert response.status_code == 200
@@ -161,7 +161,7 @@ class TestValidPermissions:
         service = MagicMock()
         service.create.return_value = _make_location()
         client = _make_auth_client(service)
-        headers = auth_header(["locations:write"])
+        headers = auth_header(["hhh:locations:write"])
 
         response = client.post(
             "/locations/",
@@ -175,7 +175,7 @@ class TestValidPermissions:
         service.get.return_value = _make_location()
         service.update.return_value = _make_location()
         client = _make_auth_client(service)
-        headers = auth_header(["locations:write"])
+        headers = auth_header(["hhh:locations:write"])
 
         response = client.put("/locations/abc123", json={"name": "Updated"}, headers=headers)
         assert response.status_code == 200
@@ -183,7 +183,7 @@ class TestValidPermissions:
     def test_delete_with_delete_permission(self) -> None:
         service = MagicMock()
         client = _make_auth_client(service)
-        headers = auth_header(["locations:delete"])
+        headers = auth_header(["hhh:locations:delete"])
 
         response = client.delete("/locations/abc123", headers=headers)
         assert response.status_code == 204

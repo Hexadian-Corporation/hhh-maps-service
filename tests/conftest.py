@@ -8,7 +8,7 @@ from hexadian_auth_common.fastapi import _stub_jwt_auth
 JWT_SECRET = "test-secret-key-with-sufficient-length"
 JWT_ALGORITHM = "HS256"
 
-ALL_PERMISSIONS = ["locations:read", "locations:write", "locations:delete"]
+ALL_PERMISSIONS = ["hhh:locations:read", "hhh:locations:write", "hhh:locations:delete"]
 
 
 def make_token(permissions: list[str] | None = None, **extra_claims: object) -> str:
@@ -48,19 +48,19 @@ def override_auth(app: object, permissions: list[str] | None = None) -> None:
 @pytest.fixture()
 def read_headers() -> dict[str, str]:
     """Auth headers with locations:read permission."""
-    return auth_header(["locations:read"])
+    return auth_header(["hhh:locations:read"])
 
 
 @pytest.fixture()
 def write_headers() -> dict[str, str]:
     """Auth headers with locations:write permission."""
-    return auth_header(["locations:write"])
+    return auth_header(["hhh:locations:write"])
 
 
 @pytest.fixture()
 def delete_headers() -> dict[str, str]:
     """Auth headers with locations:delete permission."""
-    return auth_header(["locations:delete"])
+    return auth_header(["hhh:locations:delete"])
 
 
 @pytest.fixture()

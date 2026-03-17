@@ -12,6 +12,10 @@ _CACHE_CONTROL_MAX_AGE = "max-age=300"
 
 _location_service: LocationService | None = None
 
+_read = [Depends(require_permission("hhh:locations:read"))]
+_write = [Depends(require_permission("hhh:locations:write"))]
+_delete = [Depends(require_permission("hhh:locations:delete"))]
+
 
 def init_router(location_service: LocationService) -> None:
     global _location_service
@@ -19,7 +23,7 @@ def init_router(location_service: LocationService) -> None:
 
 
 @router.post(
-    "/", response_model=LocationDTO, status_code=201, dependencies=[Depends(require_permission("locations:write"))]
+    "/", response_model=LocationDTO, status_code=201, dependencies=_write
 )
 def create_location(dto: LocationDTO) -> LocationDTO:
     location = LocationApiMapper.to_domain(dto)
@@ -27,14 +31,14 @@ def create_location(dto: LocationDTO) -> LocationDTO:
     return LocationApiMapper.to_dto(created)
 
 
-@router.get("/search", response_model=list[LocationDTO], dependencies=[Depends(require_permission("locations:read"))])
+@router.get("/search", response_model=list[LocationDTO], dependencies=_read)
 def search_locations(q: str = "", response: Response = None) -> list[LocationDTO]:
     locations = _location_service.search_by_name(q)
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
-@router.get("/{location_id}", response_model=LocationDTO, dependencies=[Depends(require_permission("locations:read"))])
+@router.get("/{location_id}", response_model=LocationDTO, dependencies=_read)
 def get_location(location_id: str) -> LocationDTO:
     try:
         location = _location_service.get(location_id)
@@ -43,7 +47,7 @@ def get_location(location_id: str) -> LocationDTO:
     return LocationApiMapper.to_dto(location)
 
 
-@router.get("/", response_model=list[LocationDTO], dependencies=[Depends(require_permission("locations:read"))])
+@router.get("/", response_model=list[LocationDTO], dependencies=_read)
 def list_locations(
     location_type: str | None = None, parent_id: str | None = None, response: Response = None
 ) -> list[LocationDTO]:
@@ -57,7 +61,7 @@ def list_locations(
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
-@router.put("/{location_id}", response_model=LocationDTO, dependencies=[Depends(require_permission("locations:write"))])
+@router.put("/{location_id}", response_model=LocationDTO, dependencies=_write)
 def update_location(location_id: str, dto: LocationUpdateDTO) -> LocationDTO:
     try:
         existing = _location_service.get(location_id)
@@ -68,7 +72,7 @@ def update_location(location_id: str, dto: LocationUpdateDTO) -> LocationDTO:
     return LocationApiMapper.to_dto(updated)
 
 
-@router.delete("/{location_id}", status_code=204, dependencies=[Depends(require_permission("locations:delete"))])
+@router.delete("/{location_id}", status_code=204, dependencies=_delete)
 def delete_location(location_id: str) -> None:
     try:
         _location_service.delete(location_id)
