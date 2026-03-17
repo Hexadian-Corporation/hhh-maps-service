@@ -63,7 +63,7 @@ uv run hhh up
 | `HHH_MAPS_MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
 | `HHH_MAPS_MONGO_DB` | `hhh_maps` | Database name |
 | `HHH_MAPS_PORT` | `8003` | Service port |
-| `HHH_MAPS_JWT_SECRET` | `""` | Shared secret for JWT signature verification |
+| `HEXADIAN_AUTH_JWT_SECRET` | `change-me-in-production` | Shared secret for JWT signature verification |
 | `HHH_MAPS_JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 
 ## API
