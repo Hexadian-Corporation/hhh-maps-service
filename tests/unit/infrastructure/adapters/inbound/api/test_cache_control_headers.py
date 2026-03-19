@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.domain.models.location import Coordinates, Location
+from src.domain.models.location import Location
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
 from tests.conftest import override_auth
 
@@ -24,7 +24,6 @@ def _make_location(location_id: str = "abc123") -> Location:
         name="Port Olisar",
         location_type="station",
         parent_id="sys-1",
-        coordinates=Coordinates(x=1.0, y=2.0, z=3.0),
         has_trade_terminal=True,
         has_landing_pad=True,
         landing_pad_size="large",

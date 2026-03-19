@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from hexadian_auth_common.fastapi import JWTAuthDependency, _stub_jwt_auth, register_exception_handlers
 
-from src.domain.models.location import Coordinates, Location
+from src.domain.models.location import Location
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
 from tests.conftest import JWT_ALGORITHM, JWT_SECRET, auth_header
 
@@ -31,7 +31,6 @@ def _make_location(location_id: str = "abc123") -> Location:
         name="Port Olisar",
         location_type="station",
         parent_id="sys-1",
-        coordinates=Coordinates(x=1.0, y=2.0, z=3.0),
         has_trade_terminal=True,
         has_landing_pad=True,
         landing_pad_size="large",
