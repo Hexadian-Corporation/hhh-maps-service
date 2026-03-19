@@ -3,7 +3,7 @@
 import dataclasses
 from unittest.mock import MagicMock
 
-from src.domain.models.location import Coordinates, Location
+from src.domain.models.location import Location
 from src.seed import _LOCATION_DEFS, SYSTEMS, build_locations, seed_locations
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,6 @@ class TestBuildLocations:
         for loc in locations:
             assert loc.name != ""
             assert loc.location_type in ("orbital", "city", "station")
-            assert isinstance(loc.coordinates, Coordinates)
             assert isinstance(loc.has_trade_terminal, bool)
             assert isinstance(loc.has_landing_pad, bool)
 

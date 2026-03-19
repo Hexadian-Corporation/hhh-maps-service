@@ -6,7 +6,7 @@ import pytest
 
 from src.application.services.location_service_impl import LocationServiceImpl
 from src.domain.exceptions.location_exceptions import LocationNotFoundError
-from src.domain.models.location import Coordinates, Location
+from src.domain.models.location import Location
 
 
 def _make_location(location_id: str = "loc-1", name: str = "Port Olisar") -> Location:
@@ -15,7 +15,6 @@ def _make_location(location_id: str = "loc-1", name: str = "Port Olisar") -> Loc
         name=name,
         location_type="station",
         parent_id="sys-1",
-        coordinates=Coordinates(x=1.0, y=2.0, z=3.0),
         has_trade_terminal=True,
         has_landing_pad=True,
         landing_pad_size="large",

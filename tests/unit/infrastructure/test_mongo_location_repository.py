@@ -32,7 +32,6 @@ class TestSearchByName:
                 "name": "Lorville",
                 "location_type": "city",
                 "parent_id": "p1",
-                "coordinates": {"x": 1.0, "y": 2.0, "z": 3.0},
                 "has_trade_terminal": True,
                 "has_landing_pad": True,
                 "landing_pad_size": "large",
@@ -59,8 +58,8 @@ class TestSearchByName:
         oid1 = ObjectId()
         oid2 = ObjectId()
         collection.find.return_value = [
-            {"_id": oid1, "name": "Port Olisar", "location_type": "station", "coordinates": {}},
-            {"_id": oid2, "name": "Port Tressler", "location_type": "station", "coordinates": {}},
+            {"_id": oid1, "name": "Port Olisar", "location_type": "station"},
+            {"_id": oid2, "name": "Port Tressler", "location_type": "station"},
         ]
 
         result = repo.search_by_name("port")
@@ -82,7 +81,6 @@ class TestFindChildren:
                 "name": "Lorville",
                 "location_type": "city",
                 "parent_id": "parent1",
-                "coordinates": {"x": 1.0, "y": 2.0, "z": 3.0},
             }
         ]
         repo = MongoLocationRepository(collection)
