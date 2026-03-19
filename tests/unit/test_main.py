@@ -28,9 +28,10 @@ class TestLifespanSeedsLocations:
         mock_settings_cls.return_value = mock_settings
 
         mock_service = MagicMock()
+        mock_distance_service = MagicMock()
         mock_jwt_auth = MagicMock()
         mock_injector = MagicMock()
-        mock_injector.inject.side_effect = [mock_service, mock_jwt_auth]
+        mock_injector.inject.side_effect = [mock_service, mock_distance_service, mock_jwt_auth]
         mock_injector_cls.return_value = mock_injector
 
         app = create_app()
@@ -56,7 +57,7 @@ class TestLifespanSeedsLocations:
         mock_settings_cls.return_value = mock_settings
 
         mock_injector = MagicMock()
-        mock_injector.inject.side_effect = [MagicMock(), MagicMock()]
+        mock_injector.inject.side_effect = [MagicMock(), MagicMock(), MagicMock()]
         mock_injector_cls.return_value = mock_injector
 
         app = create_app()
@@ -72,6 +73,7 @@ def _create_test_app() -> TestClient:
         patch("src.main.Settings") as mock_settings_cls,
         patch("src.main.Injector") as mock_injector_cls,
         patch("src.main.init_router"),
+        patch("src.main.init_distance_router"),
         patch("src.main.seed_locations"),
     ):
         mock_settings = MagicMock()
