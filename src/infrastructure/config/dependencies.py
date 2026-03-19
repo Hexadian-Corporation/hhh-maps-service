@@ -26,17 +26,23 @@ class AppModule(Module):
         client = MongoClient(self._settings.mongo_uri)
         db = client[self._settings.mongo_db]
         collection = db["locations"]
-        distances_collection = db["distances"]
+        distance_collection = db["location_distances"]
 
         collection.create_index("location_type")
         collection.create_index("parent_id")
         collection.create_index("name", collation=Collation(locale="en", strength=2))
 
+        distance_collection.create_index(
+            [("from_location_id", 1), ("to_location_id", 1)],
+            unique=True,
+        )
+        distance_collection.create_index("to_location_id")
+
         self.bind(Collection, to_instance=collection, scope=SingletonScope)
         self.bind(LocationRepository, to_class=MongoLocationRepository, scope=SingletonScope)
         self.bind(LocationService, to_class=LocationServiceImpl, scope=SingletonScope)
 
-        distance_repo = MongoLocationDistanceRepository(distances_collection)
+        distance_repo = MongoLocationDistanceRepository(distance_collection)
         self.bind(LocationDistanceRepository, to_instance=distance_repo, scope=SingletonScope)
         self.bind(LocationDistanceService, to_class=LocationDistanceServiceImpl, scope=SingletonScope)
 
