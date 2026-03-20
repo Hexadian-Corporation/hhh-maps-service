@@ -41,7 +41,7 @@ class TestAppModuleIndexes:
         distance_calls = mock_distance_collection.create_index.call_args_list
         assert len(distance_calls) == 3
         assert distance_calls[0] == call(
-            [("from_location_id", 1), ("to_location_id", 1)],
+            [("from_location_id", 1), ("to_location_id", 1), ("travel_type", 1)],
             unique=True,
         )
         assert distance_calls[1] == call("from_location_id")
