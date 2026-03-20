@@ -60,3 +60,6 @@ class LocationDistanceServiceImpl(LocationDistanceService):
         if not self._repository.delete(distance_id):
             raise LocationDistanceNotFoundError(distance_id)
         self._invalidate_cache()
+
+    def list_all(self) -> list[LocationDistance]:
+        return self._repository.find_all()

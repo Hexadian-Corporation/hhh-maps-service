@@ -21,3 +21,6 @@ class LocationDistanceRepository(ABC):
 
     @abstractmethod
     def delete(self, distance_id: str) -> bool: ...
+
+    @abstractmethod
+    def find_all(self) -> list[LocationDistance]: ...

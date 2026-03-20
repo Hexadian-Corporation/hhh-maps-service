@@ -1,9 +1,12 @@
 """Seed script to populate the maps-service with test locations for hauling contracts."""
 
 import dataclasses
+import math
 
+from src.application.ports.inbound.location_distance_service import LocationDistanceService
 from src.application.ports.inbound.location_service import LocationService
 from src.domain.models.location import Location
+from src.domain.models.location_distance import LocationDistance
 
 # ---------------------------------------------------------------------------
 # Seed data – star systems
@@ -87,6 +90,74 @@ def seed_locations(service: LocationService) -> list[Location]:
     # 2. Create child locations with parent_id set
     for location in build_locations(system_ids):
         created.append(service.create(location))
+
+    return created
+
+
+# ---------------------------------------------------------------------------
+# Seed data – location coordinates (km, relative to star-system centre)
+# Used exclusively for distance calculations; not stored on the Location model.
+# ---------------------------------------------------------------------------
+
+_LOCATION_COORDS: dict[str, tuple[float, float, float]] = {
+    # Stanton system locations
+    "Port Olisar": (0.0, 0.0, 0.0),
+    "Area18": (12_875.0, 0.0, 0.0),
+    "Lorville": (-19_467.0, 0.0, 0.0),
+    "New Babbage": (0.0, 22_462.0, 0.0),
+    "GrimHEX": (0.0, -8_500.0, 3_200.0),
+    "CRU-L1": (38_000.0, 0.0, 0.0),
+    "HUR-L1": (-35_000.0, 0.0, 0.0),
+    # Pyro system locations (offset to simulate inter-system distances)
+    "Ruin Station": (150_000.0, 0.0, 0.0),
+    "Pyro Gateway": (175_000.0, 25_000.0, 0.0),
+}
+
+
+def compute_distance(coord_a: tuple[float, float, float], coord_b: tuple[float, float, float]) -> float:
+    """Euclidean distance in km between two (x, y, z) coordinate tuples."""
+    return math.sqrt((coord_a[0] - coord_b[0]) ** 2 + (coord_a[1] - coord_b[1]) ** 2 + (coord_a[2] - coord_b[2]) ** 2)
+
+
+def seed_distances(
+    location_service: LocationService,
+    distance_service: LocationDistanceService,
+) -> list[LocationDistance]:
+    """Compute and seed distances between all trade terminal locations.
+
+    The function is **idempotent** — it checks for existing distance records
+    before creating anything.  Safe to call on every app startup.
+
+    For each unique pair of trade-terminal locations two records are created:
+    one for quantum travel and one for SCM travel.
+
+    Returns every created :class:`LocationDistance`, or an empty list if
+    records already exist.
+    """
+    if distance_service.list_all():
+        return []
+
+    locations = location_service.list_all()
+    trade_locations = [loc for loc in locations if loc.has_trade_terminal and loc.id is not None]
+
+    created: list[LocationDistance] = []
+    for i, loc_a in enumerate(trade_locations):
+        for loc_b in trade_locations[i + 1 :]:
+            coord_a = _LOCATION_COORDS.get(loc_a.name)
+            coord_b = _LOCATION_COORDS.get(loc_b.name)
+            if coord_a is None or coord_b is None:
+                continue
+
+            dist_km = compute_distance(coord_a, coord_b)
+
+            for travel_type in ("quantum", "scm"):
+                ld = LocationDistance(
+                    from_location_id=loc_a.id,
+                    to_location_id=loc_b.id,
+                    distance=round(dist_km * 1000, 2),  # store in metres
+                    travel_type=travel_type,
+                )
+                created.append(distance_service.create(ld))
 
     return created
 
