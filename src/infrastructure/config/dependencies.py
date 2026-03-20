@@ -32,8 +32,11 @@ class AppModule(Module):
         collection.create_index("parent_id")
         collection.create_index("name", collation=Collation(locale="en", strength=2))
 
+        distance_collection.drop_index(
+            "from_location_id_1_to_location_id_1",
+        ) if "from_location_id_1_to_location_id_1" in distance_collection.index_information() else None
         distance_collection.create_index(
-            [("from_location_id", 1), ("to_location_id", 1)],
+            [("from_location_id", 1), ("to_location_id", 1), ("travel_type", 1)],
             unique=True,
         )
         distance_collection.create_index("from_location_id")

@@ -105,20 +105,20 @@ class TestDistanceIndexes:
     def test_all_expected_index_names_exist(self, configured_collections: tuple) -> None:
         _, distance_col = configured_collections
         index_names = set(distance_col.index_information().keys())
-        assert "from_location_id_1_to_location_id_1" in index_names
+        assert "from_location_id_1_to_location_id_1_travel_type_1" in index_names
         assert "from_location_id_1" in index_names
         assert "to_location_id_1" in index_names
 
     def test_compound_index_key(self, configured_collections: tuple) -> None:
         _, distance_col = configured_collections
         info = distance_col.index_information()
-        compound = info["from_location_id_1_to_location_id_1"]
-        assert compound["key"] == [("from_location_id", 1), ("to_location_id", 1)]
+        compound = info["from_location_id_1_to_location_id_1_travel_type_1"]
+        assert compound["key"] == [("from_location_id", 1), ("to_location_id", 1), ("travel_type", 1)]
 
     def test_compound_index_is_unique(self, configured_collections: tuple) -> None:
         _, distance_col = configured_collections
         info = distance_col.index_information()
-        assert info["from_location_id_1_to_location_id_1"].get("unique") is True
+        assert info["from_location_id_1_to_location_id_1_travel_type_1"].get("unique") is True
 
     def test_from_location_id_index_key(self, configured_collections: tuple) -> None:
         _, distance_col = configured_collections
@@ -194,7 +194,7 @@ class TestIndexCreation:
         index_names = set(client[db_name][_DISTANCES_COL].index_information().keys())
         client.close()
 
-        assert "from_location_id_1_to_location_id_1" in index_names
+        assert "from_location_id_1_to_location_id_1_travel_type_1" in index_names
         assert "from_location_id_1" in index_names
         assert "to_location_id_1" in index_names
 
@@ -225,6 +225,6 @@ class TestIndexCreation:
         assert "parent_id_1" in location_index_names
         assert "name_1" in location_index_names
 
-        assert "from_location_id_1_to_location_id_1" in distance_index_names
+        assert "from_location_id_1_to_location_id_1_travel_type_1" in distance_index_names
         assert "from_location_id_1" in distance_index_names
         assert "to_location_id_1" in distance_index_names
