@@ -1,3 +1,4 @@
+import re
 from dataclasses import replace
 
 from bson import ObjectId
@@ -38,6 +39,12 @@ class MongoLocationRepository(LocationRepository):
     def find_children(self, parent_id: str) -> list[Location]:
         return [LocationPersistenceMapper.to_domain(doc) for doc in self._collection.find({"parent_id": parent_id})]
 
+    def find_by_type_and_parent(self, location_type: str, parent_id: str) -> list[Location]:
+        return [
+            LocationPersistenceMapper.to_domain(doc)
+            for doc in self._collection.find({"location_type": location_type, "parent_id": parent_id})
+        ]
+
     def update(self, location_id: str, location: Location) -> Location | None:
         doc = LocationPersistenceMapper.to_document(location)
         result = self._collection.replace_one({"_id": ObjectId(location_id)}, doc)
@@ -50,5 +57,5 @@ class MongoLocationRepository(LocationRepository):
         return result.deleted_count > 0
 
     def search_by_name(self, query: str) -> list[Location]:
-        cursor = self._collection.find({"name": {"$regex": query, "$options": "i"}})
+        cursor = self._collection.find({"name": {"$regex": re.escape(query), "$options": "i"}})
         return [LocationPersistenceMapper.to_domain(doc) for doc in cursor]

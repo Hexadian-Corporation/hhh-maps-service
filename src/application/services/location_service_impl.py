@@ -49,6 +49,14 @@ class LocationServiceImpl(LocationService):
         self._cache[key] = result
         return result
 
+    def list_by_type_and_parent(self, location_type: str, parent_id: str) -> list[Location]:
+        key = f"list_by_type_and_parent:{location_type}:{parent_id}"
+        if key in self._cache:
+            return self._cache[key]
+        result = self._repository.find_by_type_and_parent(location_type, parent_id)
+        self._cache[key] = result
+        return result
+
     def update(self, location_id: str, location: Location) -> Location:
         existing = self._repository.find_by_id(location_id)
         if existing is None:
