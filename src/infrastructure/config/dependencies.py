@@ -36,6 +36,7 @@ class AppModule(Module):
             [("from_location_id", 1), ("to_location_id", 1)],
             unique=True,
         )
+        distance_collection.create_index("from_location_id")
         distance_collection.create_index("to_location_id")
 
         self.bind(Collection, to_instance=collection, scope=SingletonScope)

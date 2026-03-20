@@ -39,9 +39,10 @@ class TestAppModuleIndexes:
         assert isinstance(collation_kwarg, Collation)
 
         distance_calls = mock_distance_collection.create_index.call_args_list
-        assert len(distance_calls) == 2
+        assert len(distance_calls) == 3
         assert distance_calls[0] == call(
             [("from_location_id", 1), ("to_location_id", 1)],
             unique=True,
         )
-        assert distance_calls[1] == call("to_location_id")
+        assert distance_calls[1] == call("from_location_id")
+        assert distance_calls[2] == call("to_location_id")
