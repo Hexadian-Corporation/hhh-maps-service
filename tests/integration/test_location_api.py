@@ -297,7 +297,11 @@ class TestDeleteLocation:
         get_resp = api_client.get(f"/locations/{location_id}")
         assert get_resp.status_code == 404
 
-    def test_delete_does_not_affect_other_locations(self, api_client: TestClient) -> None:
+    def test_delete_with_malformed_id_returns_404(self, api_client: TestClient) -> None:
+        response = api_client.delete("/locations/not-a-valid-object-id")
+
+        assert response.status_code == 404
+
         keep = _create(api_client, name="Keeper", location_type="planet")
         remove = _create(api_client, name="Removable", location_type="moon")
 
