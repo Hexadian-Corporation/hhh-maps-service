@@ -7,6 +7,7 @@ class LocationDistanceDTO(BaseModel):
     to_location_id: str
     distance: float
     travel_type: str  # quantum | scm | on_foot
+    in_game: bool = True
 
     model_config = {"populate_by_name": True}
 
@@ -16,6 +17,7 @@ class LocationDistanceCreateDTO(BaseModel):
     to_location_id: str
     distance: float
     travel_type: str  # quantum | scm | on_foot
+    in_game: bool = True
 
 
 class LocationDistanceUpdateDTO(BaseModel):
@@ -23,3 +25,4 @@ class LocationDistanceUpdateDTO(BaseModel):
     to_location_id: str | None = None
     distance: float | None = None
     travel_type: str | None = None
+    in_game: bool | None = None

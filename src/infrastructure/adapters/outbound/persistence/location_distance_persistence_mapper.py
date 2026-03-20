@@ -9,6 +9,7 @@ class LocationDistancePersistenceMapper:
             "to_location_id": distance.to_location_id,
             "distance": distance.distance,
             "travel_type": distance.travel_type,
+            "in_game": distance.in_game,
         }
 
     @staticmethod
@@ -19,4 +20,5 @@ class LocationDistancePersistenceMapper:
             to_location_id=doc.get("to_location_id", ""),
             distance=doc.get("distance", 0.0),
             travel_type=doc.get("travel_type", ""),
+            in_game=doc.get("in_game", True),
         )

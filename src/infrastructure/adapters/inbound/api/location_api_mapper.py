@@ -13,6 +13,7 @@ class LocationApiMapper:
             has_trade_terminal=dto.has_trade_terminal,
             has_landing_pad=dto.has_landing_pad,
             landing_pad_size=dto.landing_pad_size,
+            in_game=dto.in_game,
         )
 
     @staticmethod
@@ -25,6 +26,7 @@ class LocationApiMapper:
             has_trade_terminal=location.has_trade_terminal,
             has_landing_pad=location.has_landing_pad,
             landing_pad_size=location.landing_pad_size,
+            in_game=location.in_game,
         )
 
     @staticmethod
@@ -42,4 +44,5 @@ class LocationApiMapper:
             has_trade_terminal=has_trade_terminal,
             has_landing_pad=has_landing_pad,
             landing_pad_size=landing_pad_size,
+            in_game=dto.in_game if dto.in_game is not None else existing.in_game,
         )

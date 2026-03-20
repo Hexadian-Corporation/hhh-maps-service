@@ -30,6 +30,7 @@ def _make_doc(distance_id: str = _OID) -> dict:
         "to_location_id": "bbb",
         "distance": 1500.0,
         "travel_type": "quantum",
+        "in_game": True,
     }
 
 
