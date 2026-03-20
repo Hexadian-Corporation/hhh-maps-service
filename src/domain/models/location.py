@@ -10,3 +10,4 @@ class Location:
     has_trade_terminal: bool = False
     has_landing_pad: bool = False
     landing_pad_size: str | None = None  # small | medium | large | extra_large
+    in_game: bool = True

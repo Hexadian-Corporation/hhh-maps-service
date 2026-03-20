@@ -16,6 +16,7 @@ class TestLocationUpdateDTO:
         assert dto.has_trade_terminal is None
         assert dto.has_landing_pad is None
         assert dto.landing_pad_size is None
+        assert dto.in_game is None
 
     def test_partial_fields(self) -> None:
         dto = LocationUpdateDTO(name="New Name", has_trade_terminal=True)
@@ -31,9 +32,11 @@ class TestLocationUpdateDTO:
             has_trade_terminal=True,
             has_landing_pad=False,
             landing_pad_size="small",
+            in_game=False,
         )
         assert dto.name == "Full"
         assert dto.location_type == "city"
+        assert dto.in_game is False
 
 
 class TestUpdateToDomain:
@@ -49,6 +52,7 @@ class TestUpdateToDomain:
             has_trade_terminal=True,
             has_landing_pad=True,
             landing_pad_size="large",
+            in_game=True,
         )
 
     def test_empty_dto_preserves_existing(self) -> None:
@@ -63,6 +67,7 @@ class TestUpdateToDomain:
         assert result.has_trade_terminal is True
         assert result.has_landing_pad is True
         assert result.landing_pad_size == "large"
+        assert result.in_game is True
 
     def test_partial_update_name_only(self) -> None:
         existing = self._make_existing()
@@ -90,6 +95,7 @@ class TestUpdateToDomain:
             has_trade_terminal=False,
             has_landing_pad=False,
             landing_pad_size="small",
+            in_game=False,
         )
         result = LocationApiMapper.update_to_domain(dto, existing)
 
@@ -100,3 +106,13 @@ class TestUpdateToDomain:
         assert result.has_trade_terminal is False
         assert result.has_landing_pad is False
         assert result.landing_pad_size == "small"
+        assert result.in_game is False
+
+    def test_update_in_game_false_preserves_other_fields(self) -> None:
+        existing = self._make_existing()
+        dto = LocationUpdateDTO(in_game=False)
+        result = LocationApiMapper.update_to_domain(dto, existing)
+
+        assert result.in_game is False
+        assert result.name == "Port Olisar"
+        assert result.location_type == "station"

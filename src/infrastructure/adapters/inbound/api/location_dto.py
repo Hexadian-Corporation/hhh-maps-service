@@ -9,6 +9,7 @@ class LocationDTO(BaseModel):
     has_trade_terminal: bool = False
     has_landing_pad: bool = False
     landing_pad_size: str | None = None
+    in_game: bool = True
 
     model_config = {"populate_by_name": True}
 
@@ -20,3 +21,4 @@ class LocationUpdateDTO(BaseModel):
     has_trade_terminal: bool | None = None
     has_landing_pad: bool | None = None
     landing_pad_size: str | None = None
+    in_game: bool | None = None

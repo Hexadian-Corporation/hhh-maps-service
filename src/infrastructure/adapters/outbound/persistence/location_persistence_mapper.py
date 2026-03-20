@@ -11,6 +11,7 @@ class LocationPersistenceMapper:
             "has_trade_terminal": location.has_trade_terminal,
             "has_landing_pad": location.has_landing_pad,
             "landing_pad_size": location.landing_pad_size,
+            "in_game": location.in_game,
         }
         return doc
 
@@ -24,4 +25,5 @@ class LocationPersistenceMapper:
             has_trade_terminal=doc.get("has_trade_terminal", False),
             has_landing_pad=doc.get("has_landing_pad", False),
             landing_pad_size=doc.get("landing_pad_size"),
+            in_game=doc.get("in_game", True),
         )

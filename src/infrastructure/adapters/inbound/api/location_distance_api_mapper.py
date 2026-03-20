@@ -14,6 +14,7 @@ class LocationDistanceApiMapper:
             to_location_id=dto.to_location_id,
             distance=dto.distance,
             travel_type=dto.travel_type,
+            in_game=dto.in_game,
         )
 
     @staticmethod
@@ -24,6 +25,7 @@ class LocationDistanceApiMapper:
             to_location_id=distance.to_location_id,
             distance=distance.distance,
             travel_type=distance.travel_type,
+            in_game=distance.in_game,
         )
 
     @staticmethod
@@ -34,4 +36,5 @@ class LocationDistanceApiMapper:
             to_location_id=dto.to_location_id if dto.to_location_id is not None else existing.to_location_id,
             distance=dto.distance if dto.distance is not None else existing.distance,
             travel_type=dto.travel_type if dto.travel_type is not None else existing.travel_type,
+            in_game=dto.in_game if dto.in_game is not None else existing.in_game,
         )
