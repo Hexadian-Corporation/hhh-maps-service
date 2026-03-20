@@ -90,3 +90,43 @@ class TestFindChildren:
         collection.find.assert_called_once_with({"parent_id": "parent1"})
         assert len(result) == 1
         assert result[0].name == "Lorville"
+
+
+class TestInvalidObjectId:
+    """Verify repository methods handle invalid ObjectId strings gracefully."""
+
+    @staticmethod
+    def _make_repo() -> tuple[MongoLocationRepository, MagicMock]:
+        collection = MagicMock()
+        return MongoLocationRepository(collection), collection
+
+    def test_save_with_invalid_id_returns_location_without_writing(self) -> None:
+        repo, collection = self._make_repo()
+        from src.domain.models.location import Location
+
+        location = Location(id="not-valid", name="Ghost", location_type="planet")
+
+        result = repo.save(location)
+
+        collection.replace_one.assert_not_called()
+        collection.insert_one.assert_not_called()
+        assert result is location
+
+    def test_update_with_invalid_id_returns_none(self) -> None:
+        repo, collection = self._make_repo()
+        from src.domain.models.location import Location
+
+        location = Location(name="Ghost", location_type="planet")
+
+        result = repo.update("not-valid", location)
+
+        collection.replace_one.assert_not_called()
+        assert result is None
+
+    def test_delete_with_invalid_id_returns_false(self) -> None:
+        repo, collection = self._make_repo()
+
+        result = repo.delete("not-valid")
+
+        collection.delete_one.assert_not_called()
+        assert result is False
