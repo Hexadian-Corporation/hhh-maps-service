@@ -54,3 +54,8 @@ exclude_lines = [
 
 [tool.uv.sources]
 hexadian-auth-common = { git = "https://github.com/Hexadian-Corporation/hexadian-auth-common.git" }
+
+[dependency-groups]
+dev = [
+    "testcontainers[mongo]>=4.14.2",
+]
