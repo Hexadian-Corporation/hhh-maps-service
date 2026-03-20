@@ -12,8 +12,9 @@ from fastapi.testclient import TestClient
 
 
 class TestLifespanSeedsLocations:
-    """Verify that create_app produces an app whose lifespan calls seed_locations."""
+    """Verify that create_app produces an app whose lifespan calls seed_locations and seed_distances."""
 
+    @patch("src.main.seed_distances")
     @patch("src.main.seed_locations")
     @patch("src.main.Injector")
     @patch("src.main.Settings")
@@ -22,6 +23,7 @@ class TestLifespanSeedsLocations:
         mock_settings_cls: MagicMock,
         mock_injector_cls: MagicMock,
         mock_seed: MagicMock,
+        mock_seed_distances: MagicMock,
     ) -> None:
         mock_settings = MagicMock()
         mock_settings.app_name = "test-app"
@@ -38,11 +40,14 @@ class TestLifespanSeedsLocations:
 
         # seed_locations is called during lifespan startup, not during create_app
         mock_seed.assert_not_called()
+        mock_seed_distances.assert_not_called()
 
         # Trigger lifespan by using TestClient as context manager
         with TestClient(app):
             mock_seed.assert_called_once_with(mock_service)
+            mock_seed_distances.assert_called_once_with(mock_service, mock_distance_service)
 
+    @patch("src.main.seed_distances")
     @patch("src.main.seed_locations")
     @patch("src.main.Injector")
     @patch("src.main.Settings")
@@ -51,6 +56,7 @@ class TestLifespanSeedsLocations:
         mock_settings_cls: MagicMock,
         mock_injector_cls: MagicMock,
         mock_seed: MagicMock,
+        mock_seed_distances: MagicMock,
     ) -> None:
         mock_settings = MagicMock()
         mock_settings.app_name = "test-maps"
@@ -75,6 +81,7 @@ def _create_test_app() -> TestClient:
         patch("src.main.init_router"),
         patch("src.main.init_distance_router"),
         patch("src.main.seed_locations"),
+        patch("src.main.seed_distances"),
     ):
         mock_settings = MagicMock()
         mock_settings.app_name = "test-maps"

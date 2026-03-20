@@ -1,10 +1,20 @@
 """Unit tests for src.seed – seed data definitions and insertion logic."""
 
 import dataclasses
+import math
 from unittest.mock import MagicMock
 
 from src.domain.models.location import Location
-from src.seed import _LOCATION_DEFS, SYSTEMS, build_locations, seed_locations
+from src.domain.models.location_distance import LocationDistance
+from src.seed import (
+    _LOCATION_COORDS,
+    _LOCATION_DEFS,
+    SYSTEMS,
+    build_locations,
+    compute_distance,
+    seed_distances,
+    seed_locations,
+)
 
 # ---------------------------------------------------------------------------
 # Tests for seed data definitions
@@ -190,3 +200,138 @@ class TestSeedLocations:
         service = self._make_service()
         seed_locations(service)
         service.list_by_type.assert_called_once_with("system")
+
+
+# ---------------------------------------------------------------------------
+# Tests for seed_distances()
+# ---------------------------------------------------------------------------
+
+
+class TestSeedDistances:
+    """Verify seed_distances() computes and creates pairwise distances."""
+
+    @staticmethod
+    def _make_location_service(trade_locations: list[Location]) -> MagicMock:
+        service = MagicMock()
+        service.list_all.return_value = trade_locations
+        return service
+
+    @staticmethod
+    def _make_distance_service(existing: list[LocationDistance] | None = None) -> MagicMock:
+        service = MagicMock()
+        service.list_all.return_value = existing or []
+        call_counter = {"n": 0}
+
+        def fake_create(ld: LocationDistance) -> LocationDistance:
+            call_counter["n"] += 1
+            return dataclasses.replace(ld, id=f"dist-{call_counter['n']}")
+
+        service.create.side_effect = fake_create
+        return service
+
+    @staticmethod
+    def _make_trade_locations(names: list[str]) -> list[Location]:
+        return [
+            Location(id=f"loc-{i}", name=name, location_type="station", has_trade_terminal=True)
+            for i, name in enumerate(names)
+        ]
+
+    def test_computes_pairwise_distances(self) -> None:
+        """Correct number of records created for N trade-terminal locations."""
+        names = list(_LOCATION_COORDS.keys())[:3]  # 3 locations → 3 pairs × 2 types = 6 records
+        trade_locs = self._make_trade_locations(names)
+        loc_svc = self._make_location_service(trade_locs)
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        n = len(trade_locs)
+        expected = n * (n - 1) // 2 * 2  # pairs × 2 travel types
+        assert len(result) == expected
+
+    def test_idempotent_when_distances_exist(self) -> None:
+        """Returns [] and creates nothing when distances already exist."""
+        existing = [
+            LocationDistance(id="d1", from_location_id="a", to_location_id="b", distance=1.0, travel_type="quantum")
+        ]
+        loc_svc = self._make_location_service([])
+        dist_svc = self._make_distance_service(existing)
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        assert result == []
+        dist_svc.create.assert_not_called()
+
+    def test_creates_quantum_and_scm_records_per_pair(self) -> None:
+        """Each unique pair produces one quantum and one scm record."""
+        names = list(_LOCATION_COORDS.keys())[:2]
+        trade_locs = self._make_trade_locations(names)
+        loc_svc = self._make_location_service(trade_locs)
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        travel_types = [r.travel_type for r in result]
+        assert travel_types.count("quantum") == 1
+        assert travel_types.count("scm") == 1
+
+    def test_distance_values_are_positive(self) -> None:
+        """All computed distances are > 0."""
+        names = list(_LOCATION_COORDS.keys())[:3]
+        trade_locs = self._make_trade_locations(names)
+        loc_svc = self._make_location_service(trade_locs)
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        for record in result:
+            assert record.distance > 0
+
+    def test_only_trade_locations_included(self) -> None:
+        """Non-trade-terminal locations are excluded."""
+        names = list(_LOCATION_COORDS.keys())[:2]
+        trade_locs = self._make_trade_locations(names)
+        non_trade = Location(id="nt-1", name=names[0], location_type="system", has_trade_terminal=False)
+        loc_svc = self._make_location_service(trade_locs + [non_trade])
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        # Still only pairs from the 2 trade locations
+        assert len(result) == 2  # 1 pair × 2 travel types
+
+    def test_locations_without_coords_are_skipped(self) -> None:
+        """Locations whose name is absent from _LOCATION_COORDS are skipped."""
+        trade_locs = [
+            Location(id="loc-0", name="Port Olisar", location_type="station", has_trade_terminal=True),
+            Location(id="loc-1", name="Unknown Station", location_type="station", has_trade_terminal=True),
+        ]
+        loc_svc = self._make_location_service(trade_locs)
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        assert result == []
+
+    def test_all_created_records_have_ids(self) -> None:
+        """Every returned LocationDistance has an id assigned."""
+        names = list(_LOCATION_COORDS.keys())[:2]
+        trade_locs = self._make_trade_locations(names)
+        loc_svc = self._make_location_service(trade_locs)
+        dist_svc = self._make_distance_service()
+
+        result = seed_distances(loc_svc, dist_svc)
+
+        for record in result:
+            assert record.id is not None
+
+    def test_compute_distance_correctness(self) -> None:
+        """compute_distance returns expected Euclidean distance."""
+        a = (0.0, 0.0, 0.0)
+        b = (3.0, 4.0, 0.0)
+        assert math.isclose(compute_distance(a, b), 5.0)
+
+    def test_location_coords_covers_all_seeded_locations(self) -> None:
+        """Every location in _LOCATION_DEFS has an entry in _LOCATION_COORDS."""
+        seeded_names = {d[0] for d in _LOCATION_DEFS}
+        assert seeded_names <= set(_LOCATION_COORDS.keys())

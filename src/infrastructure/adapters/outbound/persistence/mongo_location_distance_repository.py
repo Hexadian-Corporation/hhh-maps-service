@@ -64,6 +64,10 @@ class MongoLocationDistanceRepository(LocationDistanceRepository):
         result = self._collection.delete_one({"_id": ObjectId(distance_id)})
         return result.deleted_count > 0
 
+    def find_all(self) -> list[LocationDistance]:
+        cursor = self._collection.find({})
+        return [LocationDistancePersistenceMapper.to_domain(doc) for doc in cursor]
+
     @staticmethod
     def _normalize_pair(distance: LocationDistance) -> LocationDistance:
         """Ensure from_location_id < to_location_id for consistent pair storage."""

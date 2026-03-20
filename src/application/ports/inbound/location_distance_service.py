@@ -21,3 +21,6 @@ class LocationDistanceService(ABC):
 
     @abstractmethod
     def delete(self, distance_id: str) -> None: ...
+
+    @abstractmethod
+    def list_all(self) -> list[LocationDistance]: ...

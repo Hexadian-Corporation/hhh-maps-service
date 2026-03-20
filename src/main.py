@@ -13,7 +13,7 @@ from src.infrastructure.adapters.inbound.api.location_distance_router import dis
 from src.infrastructure.adapters.inbound.api.location_router import init_router, router
 from src.infrastructure.config.dependencies import AppModule
 from src.infrastructure.config.settings import Settings
-from src.seed import seed_locations
+from src.seed import seed_distances, seed_locations
 
 
 def create_app() -> FastAPI:
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         seed_locations(location_service)
+        seed_distances(location_service, distance_service)
         yield
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
