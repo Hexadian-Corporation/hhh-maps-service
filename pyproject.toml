@@ -22,6 +22,7 @@ dev = [
     "diff-cover>=9.0",
     "httpx>=0.28",
     "ruff>=0.9",
+    "testcontainers>=4.14.2",
 ]
 
 [build-system]
@@ -55,7 +56,4 @@ exclude_lines = [
 [tool.uv.sources]
 hexadian-auth-common = { git = "https://github.com/Hexadian-Corporation/hexadian-auth-common.git" }
 
-[dependency-groups]
-dev = [
-    "testcontainers[mongo]>=4.14.2",
-]
+

@@ -49,7 +49,9 @@ def get_location(location_id: str) -> LocationDTO:
 def list_locations(
     location_type: str | None = None, parent_id: str | None = None, response: Response = None
 ) -> list[LocationDTO]:
-    if location_type:
+    if location_type and parent_id:
+        locations = _location_service.list_by_type_and_parent(location_type, parent_id)
+    elif location_type:
         locations = _location_service.list_by_type(location_type)
     elif parent_id:
         locations = _location_service.list_children(parent_id)
