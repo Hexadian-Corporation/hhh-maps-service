@@ -30,3 +30,6 @@ class LocationRepository(ABC):
 
     @abstractmethod
     def search_by_name(self, query: str) -> list[Location]: ...
+
+    @abstractmethod
+    def find_ancestors(self, location_id: str) -> list[Location]: ...

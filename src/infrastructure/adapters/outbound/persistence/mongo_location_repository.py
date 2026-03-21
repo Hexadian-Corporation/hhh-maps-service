@@ -80,3 +80,17 @@ class MongoLocationRepository(LocationRepository):
     def search_by_name(self, query: str) -> list[Location]:
         cursor = self._collection.find({"name": {"$regex": re.escape(query), "$options": "i"}})
         return [LocationPersistenceMapper.to_domain(doc) for doc in cursor]
+
+    def find_ancestors(self, location_id: str) -> list[Location]:
+        ancestors: list[Location] = []
+        current = self.find_by_id(location_id)
+        if current is None:
+            return ancestors
+        ancestors.append(current)
+        while current.parent_id is not None:
+            parent = self.find_by_id(current.parent_id)
+            if parent is None or parent.location_type == "system":
+                break
+            ancestors.append(parent)
+            current = parent
+        return ancestors
