@@ -36,14 +36,22 @@ def create_distance(dto: LocationDistanceCreateDTO) -> LocationDistanceDTO:
     return LocationDistanceApiMapper.to_dto(created)
 
 
-@distance_router.get("/distances/", response_model=LocationDistanceDTO | None, dependencies=_read)
-def get_distance_by_pair(from_location_id: str, to_location_id: str, response: Response) -> LocationDistanceDTO:
-    try:
-        distance = _distance_service.get_by_pair(from_location_id, to_location_id)
-    except LocationDistanceNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+@distance_router.get("/distances/", response_model=list[LocationDistanceDTO], dependencies=_read)
+def list_distances(
+    from_location_id: str | None = None,
+    to_location_id: str | None = None,
+    travel_type: str | None = None,
+    response: Response = None,
+) -> list[LocationDistanceDTO]:
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
-    return LocationDistanceApiMapper.to_dto(distance)
+    if from_location_id and to_location_id:
+        try:
+            distance = _distance_service.get_by_pair(from_location_id, to_location_id)
+            return [LocationDistanceApiMapper.to_dto(distance)]
+        except LocationDistanceNotFoundError:
+            return []
+    distances = _distance_service.list_by_travel_type(travel_type) if travel_type else _distance_service.list_all()
+    return [LocationDistanceApiMapper.to_dto(d) for d in distances]
 
 
 @distance_router.put("/distances/{distance_id}", response_model=LocationDistanceDTO, dependencies=_write)

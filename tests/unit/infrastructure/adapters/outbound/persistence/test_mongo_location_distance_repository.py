@@ -215,3 +215,35 @@ class TestMongoLocationDistanceRepositoryDelete:
 
         repo = MongoLocationDistanceRepository(collection)
         assert repo.delete(_OID) is False
+
+
+class TestMongoLocationDistanceRepositoryFindByTravelType:
+    def test_find_by_travel_type_returns_matching_list(self) -> None:
+        collection = MagicMock()
+        wormhole_doc = {**_make_doc(), "travel_type": "wormhole"}
+        collection.find.return_value = [wormhole_doc]
+
+        repo = MongoLocationDistanceRepository(collection)
+        results = repo.find_by_travel_type("wormhole")
+
+        assert len(results) == 1
+        assert results[0].travel_type == "wormhole"
+
+    def test_find_by_travel_type_queries_correct_field(self) -> None:
+        collection = MagicMock()
+        collection.find.return_value = []
+
+        repo = MongoLocationDistanceRepository(collection)
+        repo.find_by_travel_type("wormhole")
+
+        call_args = collection.find.call_args[0][0]
+        assert call_args == {"travel_type": "wormhole"}
+
+    def test_find_by_travel_type_returns_empty_list_when_none(self) -> None:
+        collection = MagicMock()
+        collection.find.return_value = []
+
+        repo = MongoLocationDistanceRepository(collection)
+        results = repo.find_by_travel_type("on_foot")
+
+        assert results == []
