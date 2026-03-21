@@ -1,6 +1,6 @@
 """Unit tests for MongoLocationRepository.update()."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from src.domain.models.location import Location
 from src.infrastructure.adapters.outbound.persistence.mongo_location_repository import MongoLocationRepository
@@ -60,3 +60,53 @@ class TestMongoLocationRepositoryUpdate:
         repo.update("507f1f77bcf86cd799439011", location)
 
         assert location.id == original_id
+
+
+class TestMongoLocationRepositoryFindAncestors:
+    """Verify find_ancestors() iteratively follows parent_id chain, excluding system root."""
+
+    def _make_repo(self) -> MongoLocationRepository:
+        return MongoLocationRepository(MagicMock())
+
+    def test_returns_empty_list_for_nonexistent_location(self) -> None:
+        repo = self._make_repo()
+        with patch.object(repo, "find_by_id", return_value=None):
+            result = repo.find_ancestors("missing-id")
+        assert result == []
+
+    def test_returns_single_item_for_direct_child_of_system(self) -> None:
+        system = Location(id="sys-1", name="Stanton", location_type="system", parent_id=None)
+        planet = Location(id="planet-1", name="ArcCorp", location_type="planet", parent_id="sys-1")
+
+        call_map = {"planet-1": planet, "sys-1": system}
+        repo = self._make_repo()
+        with patch.object(repo, "find_by_id", side_effect=lambda x: call_map.get(x)):
+            result = repo.find_ancestors("planet-1")
+
+        assert len(result) == 1
+        assert result[0].id == "planet-1"
+
+    def test_returns_chain_excluding_system(self) -> None:
+        system = Location(id="sys-1", name="Stanton", location_type="system", parent_id=None)
+        planet = Location(id="planet-1", name="ArcCorp", location_type="planet", parent_id="sys-1")
+        city = Location(id="city-1", name="Area 18", location_type="city", parent_id="planet-1")
+
+        call_map = {"city-1": city, "planet-1": planet, "sys-1": system}
+        repo = self._make_repo()
+        with patch.object(repo, "find_by_id", side_effect=lambda x: call_map.get(x)):
+            result = repo.find_ancestors("city-1")
+
+        assert len(result) == 2
+        assert result[0].id == "city-1"
+        assert result[1].id == "planet-1"
+
+    def test_stops_when_parent_not_found(self) -> None:
+        station = Location(id="sta-1", name="ARC-L1", location_type="station", parent_id="missing-parent")
+
+        call_map = {"sta-1": station, "missing-parent": None}
+        repo = self._make_repo()
+        with patch.object(repo, "find_by_id", side_effect=lambda x: call_map.get(x)):
+            result = repo.find_ancestors("sta-1")
+
+        assert len(result) == 1
+        assert result[0].id == "sta-1"

@@ -81,3 +81,14 @@ class LocationServiceImpl(LocationService):
         result = self._repository.search_by_name(query)
         self._cache[key] = result
         return result
+
+    def get_ancestors(self, location_id: str) -> list[Location]:
+        location = self._repository.find_by_id(location_id)
+        if location is None:
+            raise LocationNotFoundError(location_id)
+        key = f"get_ancestors:{location_id}"
+        if key in self._cache:
+            return self._cache[key]
+        result = self._repository.find_ancestors(location_id)
+        self._cache[key] = result
+        return result

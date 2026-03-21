@@ -36,6 +36,16 @@ def search_locations(q: str = "", response: Response = None) -> list[LocationDTO
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
+@router.get("/{location_id}/ancestors", response_model=list[LocationDTO], dependencies=_read)
+def get_location_ancestors(location_id: str, response: Response = None) -> list[LocationDTO]:
+    try:
+        ancestors = _location_service.get_ancestors(location_id)
+    except LocationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
+    return [LocationApiMapper.to_dto(loc) for loc in ancestors]
+
+
 @router.get("/{location_id}", response_model=LocationDTO, dependencies=_read)
 def get_location(location_id: str) -> LocationDTO:
     try:

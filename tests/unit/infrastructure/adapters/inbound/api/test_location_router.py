@@ -119,3 +119,47 @@ class TestUpdateLocationEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Port Olisar"
+
+
+class TestGetAncestorsEndpoint:
+    """Tests for GET /locations/{location_id}/ancestors."""
+
+    def test_returns_200_with_ancestor_list(self) -> None:
+        service = MagicMock()
+        city = _make_location("city-1")
+        city.location_type = "city"
+        planet = _make_location("planet-1")
+        planet.location_type = "planet"
+        planet.parent_id = None
+        service.get_ancestors.return_value = [city, planet]
+        init_router(service)
+
+        client = _make_app()
+        response = client.get("/locations/city-1/ancestors")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["_id"] == "city-1"
+        assert data[1]["_id"] == "planet-1"
+
+    def test_returns_404_for_nonexistent_location(self) -> None:
+        service = MagicMock()
+        service.get_ancestors.side_effect = LocationNotFoundError("missing-id")
+        init_router(service)
+
+        client = _make_app()
+        response = client.get("/locations/missing-id/ancestors")
+
+        assert response.status_code == 404
+
+    def test_returns_cache_control_header(self) -> None:
+        service = MagicMock()
+        service.get_ancestors.return_value = [_make_location("loc-1")]
+        init_router(service)
+
+        client = _make_app()
+        response = client.get("/locations/loc-1/ancestors")
+
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "max-age=300"

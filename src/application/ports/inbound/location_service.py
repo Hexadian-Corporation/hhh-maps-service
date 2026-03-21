@@ -30,3 +30,6 @@ class LocationService(ABC):
 
     @abstractmethod
     def search_by_name(self, query: str) -> list[Location]: ...
+
+    @abstractmethod
+    def get_ancestors(self, location_id: str) -> list[Location]: ...
