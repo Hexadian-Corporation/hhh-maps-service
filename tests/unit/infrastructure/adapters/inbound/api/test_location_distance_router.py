@@ -1,6 +1,6 @@
 """Unit tests for location distance router endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
@@ -31,7 +31,7 @@ def _make_distance(distance_id: str = "d-1") -> LocationDistance:
 
 class TestCreateDistanceEndpoint:
     def test_create_returns_201(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.create.return_value = _make_distance()
         init_distance_router(service)
 
@@ -51,7 +51,7 @@ class TestCreateDistanceEndpoint:
 
 class TestListDistancesEndpoint:
     def test_get_by_pair_returns_list_with_match(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_pair.return_value = _make_distance()
         init_distance_router(service)
 
@@ -66,7 +66,7 @@ class TestListDistancesEndpoint:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_get_by_pair_returns_empty_list_when_not_found(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_pair.side_effect = LocationDistanceNotFoundError("missing")
         init_distance_router(service)
 
@@ -77,7 +77,7 @@ class TestListDistancesEndpoint:
         assert response.json() == []
 
     def test_filter_by_travel_type_returns_matching_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_by_travel_type.return_value = [_make_distance()]
         init_distance_router(service)
 
@@ -92,7 +92,7 @@ class TestListDistancesEndpoint:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_no_params_returns_all_distances(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_all.return_value = [_make_distance("d-1"), _make_distance("d-2")]
         init_distance_router(service)
 
@@ -107,7 +107,7 @@ class TestListDistancesEndpoint:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_filter_by_travel_type_returns_empty_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_by_travel_type.return_value = []
         init_distance_router(service)
 
@@ -120,7 +120,7 @@ class TestListDistancesEndpoint:
 
 class TestUpdateDistanceEndpoint:
     def test_update_returns_200(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         existing = _make_distance()
         updated = LocationDistance(
             id="d-1",
@@ -141,7 +141,7 @@ class TestUpdateDistanceEndpoint:
         assert data["distance"] == 999.0
 
     def test_update_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.side_effect = LocationDistanceNotFoundError("missing")
         init_distance_router(service)
 
@@ -153,7 +153,7 @@ class TestUpdateDistanceEndpoint:
 
 class TestDeleteDistanceEndpoint:
     def test_delete_returns_204(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         init_distance_router(service)
 
         client = _make_app()
@@ -162,7 +162,7 @@ class TestDeleteDistanceEndpoint:
         assert response.status_code == 204
 
     def test_delete_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.delete.side_effect = LocationDistanceNotFoundError("missing")
         init_distance_router(service)
 
@@ -174,7 +174,7 @@ class TestDeleteDistanceEndpoint:
 
 class TestGetDistancesFromLocationEndpoint:
     def test_returns_list_with_cache_header(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_location.return_value = [_make_distance()]
         init_distance_router(service)
 
@@ -188,7 +188,7 @@ class TestGetDistancesFromLocationEndpoint:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_returns_empty_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_location.return_value = []
         init_distance_router(service)
 

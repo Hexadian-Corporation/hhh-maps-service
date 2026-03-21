@@ -23,23 +23,23 @@ def init_router(location_service: LocationService) -> None:
 
 
 @router.post("/", response_model=LocationDTO, status_code=201, dependencies=_write)
-def create_location(dto: LocationDTO) -> LocationDTO:
+async def create_location(dto: LocationDTO) -> LocationDTO:
     location = LocationApiMapper.to_domain(dto)
-    created = _location_service.create(location)
+    created = await _location_service.create(location)
     return LocationApiMapper.to_dto(created)
 
 
 @router.get("/search", response_model=list[LocationDTO], dependencies=_read)
-def search_locations(q: str = "", response: Response = None) -> list[LocationDTO]:
-    locations = _location_service.search_by_name(q)
+async def search_locations(q: str = "", response: Response = None) -> list[LocationDTO]:
+    locations = await _location_service.search_by_name(q)
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
 @router.get("/{location_id}/ancestors", response_model=list[LocationDTO], dependencies=_read)
-def get_location_ancestors(location_id: str, response: Response = None) -> list[LocationDTO]:
+async def get_location_ancestors(location_id: str, response: Response = None) -> list[LocationDTO]:
     try:
-        ancestors = _location_service.get_ancestors(location_id)
+        ancestors = await _location_service.get_ancestors(location_id)
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
@@ -47,44 +47,44 @@ def get_location_ancestors(location_id: str, response: Response = None) -> list[
 
 
 @router.get("/{location_id}", response_model=LocationDTO, dependencies=_read)
-def get_location(location_id: str) -> LocationDTO:
+async def get_location(location_id: str) -> LocationDTO:
     try:
-        location = _location_service.get(location_id)
+        location = await _location_service.get(location_id)
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return LocationApiMapper.to_dto(location)
 
 
 @router.get("/", response_model=list[LocationDTO], dependencies=_read)
-def list_locations(
+async def list_locations(
     location_type: str | None = None, parent_id: str | None = None, response: Response = None
 ) -> list[LocationDTO]:
     if location_type and parent_id:
-        locations = _location_service.list_by_type_and_parent(location_type, parent_id)
+        locations = await _location_service.list_by_type_and_parent(location_type, parent_id)
     elif location_type:
-        locations = _location_service.list_by_type(location_type)
+        locations = await _location_service.list_by_type(location_type)
     elif parent_id:
-        locations = _location_service.list_children(parent_id)
+        locations = await _location_service.list_children(parent_id)
     else:
-        locations = _location_service.list_all()
+        locations = await _location_service.list_all()
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationApiMapper.to_dto(loc) for loc in locations]
 
 
 @router.put("/{location_id}", response_model=LocationDTO, dependencies=_write)
-def update_location(location_id: str, dto: LocationUpdateDTO) -> LocationDTO:
+async def update_location(location_id: str, dto: LocationUpdateDTO) -> LocationDTO:
     try:
-        existing = _location_service.get(location_id)
+        existing = await _location_service.get(location_id)
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     merged = LocationApiMapper.update_to_domain(dto, existing)
-    updated = _location_service.update(location_id, merged)
+    updated = await _location_service.update(location_id, merged)
     return LocationApiMapper.to_dto(updated)
 
 
 @router.delete("/{location_id}", status_code=204, dependencies=_delete)
-def delete_location(location_id: str) -> None:
+async def delete_location(location_id: str) -> None:
     try:
-        _location_service.delete(location_id)
+        await _location_service.delete(location_id)
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

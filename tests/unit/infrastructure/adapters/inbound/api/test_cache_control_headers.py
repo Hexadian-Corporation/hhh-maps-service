@@ -1,6 +1,6 @@
 """Unit tests for Cache-Control headers on list and search endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -10,7 +10,7 @@ from src.infrastructure.adapters.inbound.api.location_router import init_router,
 from tests.conftest import override_auth
 
 
-def _make_client(service: MagicMock) -> TestClient:
+def _make_client(service: AsyncMock) -> TestClient:
     init_router(service)
     app = FastAPI()
     app.include_router(router)
@@ -34,7 +34,7 @@ class TestCacheControlHeaders:
     """Verify Cache-Control header is present on GET /locations/ and GET /locations/search."""
 
     def test_list_all_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_all.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -44,7 +44,7 @@ class TestCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_list_by_type_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_by_type.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -54,7 +54,7 @@ class TestCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_list_by_parent_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_children.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -64,7 +64,7 @@ class TestCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_search_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -74,7 +74,7 @@ class TestCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_search_empty_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = []
         client = _make_client(service)
 

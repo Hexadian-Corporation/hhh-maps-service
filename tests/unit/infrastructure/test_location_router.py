@@ -1,6 +1,6 @@
 """Unit tests for the search endpoint in location_router."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -11,7 +11,7 @@ from src.infrastructure.adapters.inbound.api.location_router import init_router,
 from tests.conftest import override_auth
 
 
-def _make_client(service: MagicMock) -> TestClient:
+def _make_client(service: AsyncMock) -> TestClient:
     init_router(service)
     app = FastAPI()
     app.include_router(router)
@@ -35,7 +35,7 @@ class TestSearchEndpoint:
     """Verify GET /locations/search?q= endpoint behavior."""
 
     def test_search_returns_matching_locations(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -48,7 +48,7 @@ class TestSearchEndpoint:
         service.search_by_name.assert_called_once_with("lor")
 
     def test_search_empty_query_returns_empty_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = []
         client = _make_client(service)
 
@@ -58,7 +58,7 @@ class TestSearchEndpoint:
         assert response.json() == []
 
     def test_search_no_query_param_returns_empty_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = []
         client = _make_client(service)
 
@@ -68,7 +68,7 @@ class TestSearchEndpoint:
         assert response.json() == []
 
     def test_search_multiple_results(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = [
             _make_location("id1", "Port Olisar"),
             _make_location("id2", "Port Tressler"),
@@ -84,7 +84,7 @@ class TestSearchEndpoint:
         assert data[1]["name"] == "Port Tressler"
 
     def test_search_returns_correct_dto_fields(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = [_make_location()]
         client = _make_client(service)
 
@@ -104,7 +104,7 @@ class TestGetLocationEndpoint:
     """Verify GET /locations/{location_id} returns 404 when not found."""
 
     def test_get_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.side_effect = LocationNotFoundError("missing-id")
         client = _make_client(service)
 
@@ -117,7 +117,7 @@ class TestDeleteLocationEndpoint:
     """Verify DELETE /locations/{location_id} returns 404 when not found."""
 
     def test_delete_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.delete.side_effect = LocationNotFoundError("missing-id")
         client = _make_client(service)
 

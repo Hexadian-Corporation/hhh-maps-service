@@ -1,8 +1,10 @@
 """Integration test fixtures: MongoDB testcontainer + FastAPI test client."""
 
+from collections.abc import AsyncGenerator
+
 import pytest
-from fastapi.testclient import TestClient
-from pymongo import MongoClient
+from httpx import ASGITransport, AsyncClient
+from motor.motor_asyncio import AsyncIOMotorClient
 from testcontainers.mongodb import MongoDbContainer
 
 from src.application.services.location_service_impl import LocationServiceImpl
@@ -21,20 +23,20 @@ def mongo_container():
 
 
 @pytest.fixture()
-def mongo_collection(mongo_container):
+async def mongo_collection(mongo_container):
     """Provide a clean MongoDB collection for each test, dropping it afterwards."""
-    client: MongoClient = MongoClient(mongo_container.get_connection_url())
+    client = AsyncIOMotorClient(mongo_container.get_connection_url())
     db = client["hhh_maps_test"]
     collection = db["locations"]
-    collection.drop()
+    await collection.drop()
     yield collection
-    collection.drop()
+    await collection.drop()
     client.close()
 
 
 @pytest.fixture()
-def api_client(mongo_collection) -> TestClient:
-    """Return a FastAPI TestClient wired to a real MongoDB collection."""
+async def api_client(mongo_collection) -> AsyncGenerator[AsyncClient, None]:
+    """Return an httpx.AsyncClient wired to a real MongoDB collection."""
     from fastapi import FastAPI
 
     repository = MongoLocationRepository(mongo_collection)
@@ -45,7 +47,8 @@ def api_client(mongo_collection) -> TestClient:
     app.include_router(router)
     override_auth(app, ALL_PERMISSIONS)
 
-    return TestClient(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
 
 
 @pytest.fixture()

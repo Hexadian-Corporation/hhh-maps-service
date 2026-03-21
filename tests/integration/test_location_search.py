@@ -1,13 +1,14 @@
 """Integration tests for Location search and filter endpoints."""
 
-from fastapi.testclient import TestClient
+import pytest
+from httpx import AsyncClient
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _create(client: TestClient, **kwargs) -> dict:
+async def _create(client: AsyncClient, **kwargs) -> dict:
     """POST /locations/ and return the created location JSON."""
     payload = {
         "name": kwargs.get("name", "Test Location"),
@@ -17,7 +18,7 @@ def _create(client: TestClient, **kwargs) -> dict:
         "has_landing_pad": kwargs.get("has_landing_pad", False),
         "landing_pad_size": kwargs.get("landing_pad_size"),
     }
-    response = client.post("/locations/", json=payload)
+    response = await client.post("/locations/", json=payload)
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -30,22 +31,24 @@ def _create(client: TestClient, **kwargs) -> dict:
 class TestLocationSearch:
     """Integration tests for GET /locations/search?q=."""
 
-    def test_search_exact_name_finds_location(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_exact_name_finds_location(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=Lorville")
+        response = await api_client.get("/locations/search?q=Lorville")
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
         assert data[0]["name"] == "Lorville"
 
-    def test_search_partial_name_finds_matching_locations(self, api_client: TestClient) -> None:
-        _create(api_client, name="Port Olisar", location_type="station")
-        _create(api_client, name="Port Tressler", location_type="station")
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_partial_name_finds_matching_locations(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Port Olisar", location_type="station")
+        await _create(api_client, name="Port Tressler", location_type="station")
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=Port")
+        response = await api_client.get("/locations/search?q=Port")
 
         assert response.status_code == 200
         data = response.json()
@@ -54,53 +57,59 @@ class TestLocationSearch:
         assert "Port Tressler" in names
         assert "Lorville" not in names
 
-    def test_search_case_insensitive(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_case_insensitive(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=lorville")
+        response = await api_client.get("/locations/search?q=lorville")
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
         assert data[0]["name"] == "Lorville"
 
-    def test_search_no_results_returns_empty_list(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_no_results_returns_empty_list(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=NonExistentXyz")
+        response = await api_client.get("/locations/search?q=NonExistentXyz")
 
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_search_special_characters_no_error(self, api_client: TestClient) -> None:
-        response = api_client.get("/locations/search?q=.*+?[](){}\\^$|")
+    @pytest.mark.anyio
+    async def test_search_special_characters_no_error(self, api_client: AsyncClient) -> None:
+        response = await api_client.get("/locations/search?q=.*+?[](){}\\^$|")
 
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
-    def test_search_empty_string_returns_empty_list(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_empty_string_returns_empty_list(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=")
-
-        assert response.status_code == 200
-        assert response.json() == []
-
-    def test_search_no_query_param_returns_empty_list(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
-
-        response = api_client.get("/locations/search")
+        response = await api_client.get("/locations/search?q=")
 
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_search_multiple_matching_locations(self, api_client: TestClient) -> None:
-        _create(api_client, name="Area18", location_type="city")
-        _create(api_client, name="Area19", location_type="city")
-        _create(api_client, name="Area20", location_type="city")
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_search_no_query_param_returns_empty_list(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/search?q=Area")
+        response = await api_client.get("/locations/search")
+
+        assert response.status_code == 200
+        assert response.json() == []
+
+    @pytest.mark.anyio
+    async def test_search_multiple_matching_locations(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Area18", location_type="city")
+        await _create(api_client, name="Area19", location_type="city")
+        await _create(api_client, name="Area20", location_type="city")
+        await _create(api_client, name="Lorville", location_type="city")
+
+        response = await api_client.get("/locations/search?q=Area")
 
         assert response.status_code == 200
         data = response.json()
@@ -117,12 +126,13 @@ class TestLocationSearch:
 class TestLocationFilterByType:
     """Integration tests for GET /locations/?location_type=."""
 
-    def test_filter_by_planet_returns_only_planets(self, api_client: TestClient) -> None:
-        _create(api_client, name="ArcCorp", location_type="planet")
-        _create(api_client, name="Crusader", location_type="planet")
-        _create(api_client, name="Cellin", location_type="moon")
+    @pytest.mark.anyio
+    async def test_filter_by_planet_returns_only_planets(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="ArcCorp", location_type="planet")
+        await _create(api_client, name="Crusader", location_type="planet")
+        await _create(api_client, name="Cellin", location_type="moon")
 
-        response = api_client.get("/locations/?location_type=planet")
+        response = await api_client.get("/locations/?location_type=planet")
 
         assert response.status_code == 200
         data = response.json()
@@ -132,12 +142,13 @@ class TestLocationFilterByType:
         assert "Crusader" in names
         assert "Cellin" not in names
 
-    def test_filter_by_moon_returns_only_moons(self, api_client: TestClient) -> None:
-        _create(api_client, name="Crusader", location_type="planet")
-        _create(api_client, name="Cellin", location_type="moon")
-        _create(api_client, name="Daymar", location_type="moon")
+    @pytest.mark.anyio
+    async def test_filter_by_moon_returns_only_moons(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Crusader", location_type="planet")
+        await _create(api_client, name="Cellin", location_type="moon")
+        await _create(api_client, name="Daymar", location_type="moon")
 
-        response = api_client.get("/locations/?location_type=moon")
+        response = await api_client.get("/locations/?location_type=moon")
 
         assert response.status_code == 200
         data = response.json()
@@ -147,21 +158,23 @@ class TestLocationFilterByType:
         assert "Daymar" in names
         assert "Crusader" not in names
 
-    def test_filter_by_nonexistent_type_returns_empty(self, api_client: TestClient) -> None:
-        _create(api_client, name="Lorville", location_type="city")
+    @pytest.mark.anyio
+    async def test_filter_by_nonexistent_type_returns_empty(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Lorville", location_type="city")
 
-        response = api_client.get("/locations/?location_type=nonexistent_type")
+        response = await api_client.get("/locations/?location_type=nonexistent_type")
 
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_filter_returns_all_locations_of_requested_type(self, api_client: TestClient) -> None:
+    @pytest.mark.anyio
+    async def test_filter_returns_all_locations_of_requested_type(self, api_client: AsyncClient) -> None:
         planet_names = ["ArcCorp", "Crusader", "MicroTech", "Hurston"]
         for name in planet_names:
-            _create(api_client, name=name, location_type="planet")
-        _create(api_client, name="Cellin", location_type="moon")
+            await _create(api_client, name=name, location_type="planet")
+        await _create(api_client, name="Cellin", location_type="moon")
 
-        response = api_client.get("/locations/?location_type=planet")
+        response = await api_client.get("/locations/?location_type=planet")
 
         assert response.status_code == 200
         data = response.json()
@@ -177,16 +190,17 @@ class TestLocationFilterByType:
 class TestLocationFilterByParent:
     """Integration tests for GET /locations/?parent_id={id}."""
 
-    def test_filter_by_parent_id_returns_only_children(self, api_client: TestClient) -> None:
-        parent = _create(api_client, name="Crusader", location_type="planet")
+    @pytest.mark.anyio
+    async def test_filter_by_parent_id_returns_only_children(self, api_client: AsyncClient) -> None:
+        parent = await _create(api_client, name="Crusader", location_type="planet")
         parent_id = parent["_id"]
-        _create(api_client, name="Cellin", location_type="moon", parent_id=parent_id)
-        _create(api_client, name="Daymar", location_type="moon", parent_id=parent_id)
+        await _create(api_client, name="Cellin", location_type="moon", parent_id=parent_id)
+        await _create(api_client, name="Daymar", location_type="moon", parent_id=parent_id)
 
-        other_parent = _create(api_client, name="ArcCorp", location_type="planet")
-        _create(api_client, name="Lyria", location_type="moon", parent_id=other_parent["_id"])
+        other_parent = await _create(api_client, name="ArcCorp", location_type="planet")
+        await _create(api_client, name="Lyria", location_type="moon", parent_id=other_parent["_id"])
 
-        response = api_client.get(f"/locations/?parent_id={parent_id}")
+        response = await api_client.get(f"/locations/?parent_id={parent_id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -196,22 +210,24 @@ class TestLocationFilterByParent:
         assert "Daymar" in names
         assert "Lyria" not in names
 
-    def test_filter_by_nonexistent_parent_returns_empty(self, api_client: TestClient) -> None:
-        _create(api_client, name="Cellin", location_type="moon")
+    @pytest.mark.anyio
+    async def test_filter_by_nonexistent_parent_returns_empty(self, api_client: AsyncClient) -> None:
+        await _create(api_client, name="Cellin", location_type="moon")
 
-        response = api_client.get("/locations/?parent_id=000000000000000000000000")
+        response = await api_client.get("/locations/?parent_id=000000000000000000000000")
 
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_parent_with_multiple_children_returns_all(self, api_client: TestClient) -> None:
-        parent = _create(api_client, name="Crusader", location_type="planet")
+    @pytest.mark.anyio
+    async def test_parent_with_multiple_children_returns_all(self, api_client: AsyncClient) -> None:
+        parent = await _create(api_client, name="Crusader", location_type="planet")
         parent_id = parent["_id"]
         child_names = ["Cellin", "Daymar", "Yela"]
         for name in child_names:
-            _create(api_client, name=name, location_type="moon", parent_id=parent_id)
+            await _create(api_client, name=name, location_type="moon", parent_id=parent_id)
 
-        response = api_client.get(f"/locations/?parent_id={parent_id}")
+        response = await api_client.get(f"/locations/?parent_id={parent_id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -227,24 +243,25 @@ class TestLocationFilterByParent:
 class TestLocationFilterCombinations:
     """Integration tests for combined location_type + parent_id filters."""
 
-    def test_combined_filters_return_correct_intersection(self, api_client: TestClient) -> None:
-        crusader = _create(api_client, name="Crusader", location_type="planet")
+    @pytest.mark.anyio
+    async def test_combined_filters_return_correct_intersection(self, api_client: AsyncClient) -> None:
+        crusader = await _create(api_client, name="Crusader", location_type="planet")
         crusader_id = crusader["_id"]
 
-        arccorp = _create(api_client, name="ArcCorp", location_type="planet")
+        arccorp = await _create(api_client, name="ArcCorp", location_type="planet")
         arccorp_id = arccorp["_id"]
 
         # Moons of Crusader
-        _create(api_client, name="Cellin", location_type="moon", parent_id=crusader_id)
-        _create(api_client, name="Daymar", location_type="moon", parent_id=crusader_id)
+        await _create(api_client, name="Cellin", location_type="moon", parent_id=crusader_id)
+        await _create(api_client, name="Daymar", location_type="moon", parent_id=crusader_id)
 
         # Moon of ArcCorp
-        _create(api_client, name="Lyria", location_type="moon", parent_id=arccorp_id)
+        await _create(api_client, name="Lyria", location_type="moon", parent_id=arccorp_id)
 
         # Station orbiting Crusader (same parent, different type)
-        _create(api_client, name="Orison", location_type="city", parent_id=crusader_id)
+        await _create(api_client, name="Orison", location_type="city", parent_id=crusader_id)
 
-        response = api_client.get(f"/locations/?location_type=moon&parent_id={crusader_id}")
+        response = await api_client.get(f"/locations/?location_type=moon&parent_id={crusader_id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -253,13 +270,14 @@ class TestLocationFilterCombinations:
         assert "Lyria" not in names
         assert "Orison" not in names
 
-    def test_combined_filters_no_match_returns_empty(self, api_client: TestClient) -> None:
-        parent = _create(api_client, name="Crusader", location_type="planet")
+    @pytest.mark.anyio
+    async def test_combined_filters_no_match_returns_empty(self, api_client: AsyncClient) -> None:
+        parent = await _create(api_client, name="Crusader", location_type="planet")
         parent_id = parent["_id"]
-        _create(api_client, name="Cellin", location_type="moon", parent_id=parent_id)
+        await _create(api_client, name="Cellin", location_type="moon", parent_id=parent_id)
 
         # Ask for 'system' type under that parent — no match
-        response = api_client.get(f"/locations/?location_type=system&parent_id={parent_id}")
+        response = await api_client.get(f"/locations/?location_type=system&parent_id={parent_id}")
 
         assert response.status_code == 200
         assert response.json() == []

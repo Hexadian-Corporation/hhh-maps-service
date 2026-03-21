@@ -1,6 +1,9 @@
 """Integration tests for MongoDB indexes on locations and location_distances collections."""
 
+import asyncio
+
 import pytest
+from fastapi.testclient import TestClient
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -16,7 +19,7 @@ _DISTANCES_COL = "location_distances"
 
 @pytest.fixture()
 def configured_collections(mongo_container) -> tuple[Collection, Collection]:
-    """Run AppModule.configure() on a fresh DB and return (locations, distances)."""
+    """Run AppModule.configure() + create_indexes() on a fresh DB and return (locations, distances)."""
     db_name = "hhh_maps_indexes_test"
     mongo_uri = mongo_container.get_connection_url()
 
@@ -26,7 +29,9 @@ def configured_collections(mongo_container) -> tuple[Collection, Collection]:
     client[db_name][_DISTANCES_COL].drop()
     client.close()
 
-    AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name)).configure()
+    module = AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name))
+    module.configure()
+    asyncio.run(module.create_indexes())
 
     client = MongoClient(mongo_uri)
     db = client[db_name]
@@ -83,7 +88,7 @@ class TestLocationIndexes:
         assert not info["parent_id_1"].get("unique", False)
 
     def test_idempotency(self, mongo_container) -> None:
-        """Calling AppModule.configure() twice on the same collection must not raise."""
+        """Calling create_indexes() twice on the same collection must not raise."""
         db_name = "hhh_maps_idempotency_locations_test"
         mongo_uri = mongo_container.get_connection_url()
 
@@ -91,9 +96,14 @@ class TestLocationIndexes:
         client[db_name][_LOCATIONS_COL].drop()
         client.close()
 
-        settings = Settings(mongo_uri=mongo_uri, mongo_db=db_name)
-        AppModule(settings).configure()
-        AppModule(settings).configure()  # second call — must not raise
+        module = AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name))
+        module.configure()
+
+        async def _create_twice() -> None:
+            await module.create_indexes()
+            await module.create_indexes()  # second call — must not raise
+
+        asyncio.run(_create_twice())
 
 
 # ─── TestDistanceIndexes ───────────────────────────────────────────────────────
@@ -141,7 +151,7 @@ class TestDistanceIndexes:
         assert not info["to_location_id_1"].get("unique", False)
 
     def test_idempotency(self, mongo_container) -> None:
-        """Calling AppModule.configure() twice on the same collection must not raise."""
+        """Calling create_indexes() twice on the same collection must not raise."""
         db_name = "hhh_maps_idempotency_distances_test"
         mongo_uri = mongo_container.get_connection_url()
 
@@ -149,9 +159,14 @@ class TestDistanceIndexes:
         client[db_name][_DISTANCES_COL].drop()
         client.close()
 
-        settings = Settings(mongo_uri=mongo_uri, mongo_db=db_name)
-        AppModule(settings).configure()
-        AppModule(settings).configure()  # second call — must not raise
+        module = AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name))
+        module.configure()
+
+        async def _create_twice() -> None:
+            await module.create_indexes()
+            await module.create_indexes()  # second call — must not raise
+
+        asyncio.run(_create_twice())
 
 
 # ─── TestIndexCreation ────────────────────────────────────────────────────────
@@ -161,7 +176,7 @@ class TestIndexCreation:
     """Verify indexes are automatically created when the application is configured."""
 
     def test_appmodule_creates_location_indexes_on_clean_collection(self, mongo_container) -> None:
-        """AppModule.configure() on a fresh collection creates all location indexes."""
+        """AppModule.create_indexes() on a fresh collection creates all location indexes."""
         db_name = "hhh_maps_creation_locations_test"
         mongo_uri = mongo_container.get_connection_url()
 
@@ -169,7 +184,9 @@ class TestIndexCreation:
         client[db_name][_LOCATIONS_COL].drop()
         client.close()
 
-        AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name)).configure()
+        module = AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name))
+        module.configure()
+        asyncio.run(module.create_indexes())
 
         client = MongoClient(mongo_uri)
         index_names = set(client[db_name][_LOCATIONS_COL].index_information().keys())
@@ -180,7 +197,7 @@ class TestIndexCreation:
         assert "name_1" in index_names
 
     def test_appmodule_creates_distance_indexes_on_clean_collection(self, mongo_container) -> None:
-        """AppModule.configure() on a fresh collection creates all distance indexes."""
+        """AppModule.create_indexes() on a fresh collection creates all distance indexes."""
         db_name = "hhh_maps_creation_distances_test"
         mongo_uri = mongo_container.get_connection_url()
 
@@ -188,7 +205,9 @@ class TestIndexCreation:
         client[db_name][_DISTANCES_COL].drop()
         client.close()
 
-        AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name)).configure()
+        module = AppModule(Settings(mongo_uri=mongo_uri, mongo_db=db_name))
+        module.configure()
+        asyncio.run(module.create_indexes())
 
         client = MongoClient(mongo_uri)
         index_names = set(client[db_name][_DISTANCES_COL].index_information().keys())
@@ -199,7 +218,7 @@ class TestIndexCreation:
         assert "to_location_id_1" in index_names
 
     def test_full_app_creates_indexes_on_both_collections(self, mongo_container, monkeypatch) -> None:
-        """create_app() configures both collections with their respective indexes."""
+        """Starting the app via TestClient triggers the lifespan and creates indexes on both collections."""
         db_name = "hhh_maps_full_app_indexes_test"
         mongo_uri = mongo_container.get_connection_url()
 
@@ -213,7 +232,8 @@ class TestIndexCreation:
 
         from src.main import create_app
 
-        create_app()
+        with TestClient(create_app()):
+            pass  # lifespan startup creates indexes
 
         client = MongoClient(mongo_uri)
         db = client[db_name]

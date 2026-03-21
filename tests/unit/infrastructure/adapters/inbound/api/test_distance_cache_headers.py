@@ -1,6 +1,6 @@
 """Unit tests for Cache-Control headers on distance GET endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -10,7 +10,7 @@ from src.infrastructure.adapters.inbound.api.location_distance_router import dis
 from tests.conftest import override_auth
 
 
-def _make_client(service: MagicMock) -> TestClient:
+def _make_client(service: AsyncMock) -> TestClient:
     init_distance_router(service)
     app = FastAPI()
     app.include_router(distance_router)
@@ -32,7 +32,7 @@ class TestDistanceCacheControlHeaders:
     """Verify Cache-Control header is present on distance GET endpoints."""
 
     def test_get_by_pair_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_pair.return_value = _make_distance()
         client = _make_client(service)
 
@@ -42,7 +42,7 @@ class TestDistanceCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_get_distances_from_location_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_location.return_value = [_make_distance()]
         client = _make_client(service)
 
@@ -52,7 +52,7 @@ class TestDistanceCacheControlHeaders:
         assert response.headers.get("cache-control") == "max-age=300"
 
     def test_get_distances_from_location_empty_has_cache_control(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_by_location.return_value = []
         client = _make_client(service)
 

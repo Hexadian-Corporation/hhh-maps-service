@@ -1,6 +1,6 @@
 """Unit tests for JWT authentication on location endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -11,10 +11,10 @@ from src.infrastructure.adapters.inbound.api.location_router import init_router,
 from tests.conftest import JWT_ALGORITHM, JWT_SECRET, auth_header
 
 
-def _make_auth_client(service: MagicMock | None = None) -> TestClient:
+def _make_auth_client(service: AsyncMock | None = None) -> TestClient:
     """Create a test client with real JWT auth configured."""
     if service is None:
-        service = MagicMock()
+        service = AsyncMock()
     init_router(service)
 
     app = FastAPI()
@@ -130,7 +130,7 @@ class TestValidPermissions:
     """Verify that endpoints succeed with the correct permissions."""
 
     def test_get_locations_with_read_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.list_all.return_value = [_make_location()]
         client = _make_auth_client(service)
         headers = auth_header(["hhh:locations:read"])
@@ -139,7 +139,7 @@ class TestValidPermissions:
         assert response.status_code == 200
 
     def test_get_location_by_id_with_read_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.return_value = _make_location()
         client = _make_auth_client(service)
         headers = auth_header(["hhh:locations:read"])
@@ -148,7 +148,7 @@ class TestValidPermissions:
         assert response.status_code == 200
 
     def test_search_with_read_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.search_by_name.return_value = [_make_location()]
         client = _make_auth_client(service)
         headers = auth_header(["hhh:locations:read"])
@@ -157,7 +157,7 @@ class TestValidPermissions:
         assert response.status_code == 200
 
     def test_create_with_write_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.create.return_value = _make_location()
         client = _make_auth_client(service)
         headers = auth_header(["hhh:locations:write"])
@@ -170,7 +170,7 @@ class TestValidPermissions:
         assert response.status_code == 201
 
     def test_update_with_write_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.return_value = _make_location()
         service.update.return_value = _make_location()
         client = _make_auth_client(service)
@@ -180,7 +180,7 @@ class TestValidPermissions:
         assert response.status_code == 200
 
     def test_delete_with_delete_permission(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         client = _make_auth_client(service)
         headers = auth_header(["hhh:locations:delete"])
 
