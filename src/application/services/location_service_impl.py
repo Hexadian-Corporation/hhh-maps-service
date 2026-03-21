@@ -7,9 +7,9 @@ from src.domain.models.location import Location
 
 
 class LocationServiceImpl(LocationService):
-    def __init__(self, repository: LocationRepository) -> None:
+    def __init__(self, repository: LocationRepository, cache_maxsize: int = 256, cache_ttl: int = 300) -> None:
         self._repository = repository
-        self._cache: TTLCache[str, list[Location]] = TTLCache(maxsize=256, ttl=300)
+        self._cache: TTLCache[str, list[Location]] = TTLCache(maxsize=cache_maxsize, ttl=cache_ttl)
 
     def _invalidate_cache(self) -> None:
         self._cache.clear()

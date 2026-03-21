@@ -93,6 +93,7 @@ def _create_test_app() -> TestClient:
     ):
         mock_settings = MagicMock()
         mock_settings.app_name = "test-maps"
+        mock_settings.cors_origins = ["http://localhost:3000", "http://localhost:3001"]
         mock_settings_cls.return_value = mock_settings
         mock_injector_cls.return_value = MagicMock()
 

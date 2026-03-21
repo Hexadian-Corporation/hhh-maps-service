@@ -26,13 +26,23 @@ class AppModule(Module):
         self._distance_collection: AsyncIOMotorCollection = db["location_distances"]
 
     def configure(self) -> None:
-        self.bind(AsyncIOMotorCollection, to_instance=self._location_collection, scope=SingletonScope)
-        self.bind(LocationRepository, to_class=MongoLocationRepository, scope=SingletonScope)
-        self.bind(LocationService, to_class=LocationServiceImpl, scope=SingletonScope)
+        location_repo = MongoLocationRepository(self._location_collection)
+        self.bind(LocationRepository, to_instance=location_repo, scope=SingletonScope)
+        location_service = LocationServiceImpl(
+            repository=location_repo,
+            cache_maxsize=self._settings.location_cache_maxsize,
+            cache_ttl=self._settings.cache_ttl_seconds,
+        )
+        self.bind(LocationService, to_instance=location_service, scope=SingletonScope)
 
         distance_repo = MongoLocationDistanceRepository(self._distance_collection)
         self.bind(LocationDistanceRepository, to_instance=distance_repo, scope=SingletonScope)
-        self.bind(LocationDistanceService, to_class=LocationDistanceServiceImpl, scope=SingletonScope)
+        distance_service = LocationDistanceServiceImpl(
+            repository=distance_repo,
+            cache_maxsize=self._settings.distance_cache_maxsize,
+            cache_ttl=self._settings.cache_ttl_seconds,
+        )
+        self.bind(LocationDistanceService, to_instance=distance_service, scope=SingletonScope)
 
         jwt_auth = JWTAuthDependency(
             secret=self._settings.jwt_secret,
