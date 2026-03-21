@@ -18,7 +18,8 @@ from src.seed import seed_distances, seed_locations
 
 def create_app() -> FastAPI:
     settings = Settings()
-    injector = Injector([AppModule(settings)])
+    module = AppModule(settings)
+    injector = Injector([module])
 
     location_service = injector.inject(LocationService)
     init_router(location_service)
@@ -30,8 +31,9 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        seed_locations(location_service)
-        seed_distances(location_service, distance_service)
+        await module.create_indexes()
+        await seed_locations(location_service)
+        await seed_distances(location_service, distance_service)
         yield
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)

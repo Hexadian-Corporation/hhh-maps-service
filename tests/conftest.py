@@ -11,6 +11,12 @@ JWT_ALGORITHM = "HS256"
 ALL_PERMISSIONS = ["hhh:locations:read", "hhh:locations:write", "hhh:locations:delete"]
 
 
+@pytest.fixture(params=["asyncio"])
+def anyio_backend() -> str:
+    """Limit anyio tests to asyncio only — motor does not support trio."""
+    return "asyncio"
+
+
 def make_token(permissions: list[str] | None = None, **extra_claims: object) -> str:
     """Create a valid JWT token with the given permissions."""
     claims: dict = {

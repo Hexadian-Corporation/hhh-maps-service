@@ -1,6 +1,6 @@
 """Unit tests for location router endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
@@ -36,7 +36,7 @@ class TestGetLocationEndpoint:
     """Tests for GET /locations/{location_id} 404 path."""
 
     def test_get_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.side_effect = LocationNotFoundError("missing-id")
         init_router(service)
 
@@ -50,7 +50,7 @@ class TestDeleteLocationEndpoint:
     """Tests for DELETE /locations/{location_id} 404 path."""
 
     def test_delete_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.delete.side_effect = LocationNotFoundError("missing-id")
         init_router(service)
 
@@ -64,7 +64,7 @@ class TestUpdateLocationEndpoint:
     """Tests for PUT /locations/{location_id}."""
 
     def test_update_returns_200_with_updated_location(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         existing = _make_location()
         updated = _make_location()
         updated.name = "Updated Name"
@@ -81,7 +81,7 @@ class TestUpdateLocationEndpoint:
         assert data["location_type"] == "station"
 
     def test_update_partial_fields(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         existing = _make_location()
         updated = _make_location()
         updated.has_trade_terminal = False
@@ -97,7 +97,7 @@ class TestUpdateLocationEndpoint:
         assert data["has_trade_terminal"] is False
 
     def test_update_returns_404_for_nonexistent(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get.side_effect = LocationNotFoundError("missing-id")
         init_router(service)
 
@@ -107,7 +107,7 @@ class TestUpdateLocationEndpoint:
         assert response.status_code == 404
 
     def test_update_empty_body_preserves_existing(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         existing = _make_location()
         service.get.return_value = existing
         service.update.return_value = existing
@@ -125,7 +125,7 @@ class TestGetAncestorsEndpoint:
     """Tests for GET /locations/{location_id}/ancestors."""
 
     def test_returns_200_with_ancestor_list(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         city = _make_location("city-1")
         city.location_type = "city"
         planet = _make_location("planet-1")
@@ -144,7 +144,7 @@ class TestGetAncestorsEndpoint:
         assert data[1]["_id"] == "planet-1"
 
     def test_returns_404_for_nonexistent_location(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_ancestors.side_effect = LocationNotFoundError("missing-id")
         init_router(service)
 
@@ -154,7 +154,7 @@ class TestGetAncestorsEndpoint:
         assert response.status_code == 404
 
     def test_returns_cache_control_header(self) -> None:
-        service = MagicMock()
+        service = AsyncMock()
         service.get_ancestors.return_value = [_make_location("loc-1")]
         init_router(service)
 

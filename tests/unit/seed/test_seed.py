@@ -2,7 +2,9 @@
 
 import dataclasses
 import math
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
+
+import pytest
 
 from src.domain.models.location import Location
 from src.domain.models.location_distance import LocationDistance
@@ -134,12 +136,12 @@ class TestSeedLocations:
     """Verify seed_locations() orchestrates system + location creation."""
 
     @staticmethod
-    def _make_service() -> MagicMock:
+    def _make_service() -> AsyncMock:
         """Return a mock LocationService whose ``create`` returns a copy with a fake ID."""
-        service = MagicMock()
+        service = AsyncMock()
         call_counter = {"n": 0}
 
-        def fake_create(location: Location) -> Location:
+        async def fake_create(location: Location) -> Location:
             call_counter["n"] += 1
             return dataclasses.replace(location, id=f"id-{call_counter['n']}")
 
@@ -147,58 +149,62 @@ class TestSeedLocations:
         service.list_by_type.return_value = []
         return service
 
-    def test_returns_all_created_locations(self) -> None:
+    @pytest.mark.anyio
+    async def test_returns_all_created_locations(self) -> None:
         service = self._make_service()
-        result = seed_locations(service)
+        result = await seed_locations(service)
         # 2 systems + 9 locations = 11 total
         assert len(result) == len(SYSTEMS) + len(_LOCATION_DEFS)
 
-    def test_service_create_called_for_each(self) -> None:
+    @pytest.mark.anyio
+    async def test_service_create_called_for_each(self) -> None:
         service = self._make_service()
-        seed_locations(service)
+        await seed_locations(service)
         expected_calls = len(SYSTEMS) + len(_LOCATION_DEFS)
         assert service.create.call_count == expected_calls
 
-    def test_systems_created_first(self) -> None:
+    @pytest.mark.anyio
+    async def test_systems_created_first(self) -> None:
         service = self._make_service()
-        seed_locations(service)
-        calls = service.create.call_args_list
-        # First two calls should be copies of the system locations
-        first_arg = calls[0][0][0]
-        second_arg = calls[1][0][0]
-        assert first_arg.name == SYSTEMS[0].name
-        assert first_arg.location_type == SYSTEMS[0].location_type
-        assert second_arg.name == SYSTEMS[1].name
-        assert second_arg.location_type == SYSTEMS[1].location_type
+        result = await seed_locations(service)
+        # First two results should be the systems
+        assert result[0].location_type == "system"
+        assert result[1].location_type == "system"
+        system_names = {result[0].name, result[1].name}
+        assert system_names == {"Stanton", "Pyro"}
 
-    def test_child_locations_have_parent_ids(self) -> None:
+    @pytest.mark.anyio
+    async def test_child_locations_have_parent_ids(self) -> None:
         service = self._make_service()
-        result = seed_locations(service)
+        result = await seed_locations(service)
         # Skip the first 2 (systems); remaining should have parent_id set
         child_locations = result[len(SYSTEMS) :]
         for loc in child_locations:
             assert loc.parent_id is not None
 
-    def test_all_returned_locations_have_ids(self) -> None:
+    @pytest.mark.anyio
+    async def test_all_returned_locations_have_ids(self) -> None:
         service = self._make_service()
-        result = seed_locations(service)
+        result = await seed_locations(service)
         for loc in result:
             assert loc.id is not None
 
-    def test_idempotent_skips_when_systems_exist(self) -> None:
+    @pytest.mark.anyio
+    async def test_idempotent_skips_when_systems_exist(self) -> None:
         """seed_locations returns [] and creates nothing when systems already exist."""
         service = self._make_service()
         service.list_by_type.return_value = [
             Location(id="existing-1", name="Stanton", location_type="system"),
         ]
-        result = seed_locations(service)
+        result = await seed_locations(service)
         assert result == []
         service.create.assert_not_called()
 
-    def test_idempotent_checks_system_type(self) -> None:
+    @pytest.mark.anyio
+    async def test_idempotent_checks_system_type(self) -> None:
         """seed_locations queries list_by_type('system') for the guard."""
         service = self._make_service()
-        seed_locations(service)
+        await seed_locations(service)
         service.list_by_type.assert_called_once_with("system")
 
 
@@ -211,18 +217,18 @@ class TestSeedDistances:
     """Verify seed_distances() computes and creates pairwise distances."""
 
     @staticmethod
-    def _make_location_service(trade_locations: list[Location]) -> MagicMock:
-        service = MagicMock()
+    def _make_location_service(trade_locations: list[Location]) -> AsyncMock:
+        service = AsyncMock()
         service.list_all.return_value = trade_locations
         return service
 
     @staticmethod
-    def _make_distance_service(existing: list[LocationDistance] | None = None) -> MagicMock:
-        service = MagicMock()
+    def _make_distance_service(existing: list[LocationDistance] | None = None) -> AsyncMock:
+        service = AsyncMock()
         service.list_all.return_value = existing or []
         call_counter = {"n": 0}
 
-        def fake_create(ld: LocationDistance) -> LocationDistance:
+        async def fake_create(ld: LocationDistance) -> LocationDistance:
             call_counter["n"] += 1
             return dataclasses.replace(ld, id=f"dist-{call_counter['n']}")
 
@@ -236,20 +242,22 @@ class TestSeedDistances:
             for i, name in enumerate(names)
         ]
 
-    def test_computes_pairwise_distances(self) -> None:
+    @pytest.mark.anyio
+    async def test_computes_pairwise_distances(self) -> None:
         """Correct number of records created for N trade-terminal locations."""
         names = list(_LOCATION_COORDS.keys())[:3]  # 3 locations → 3 pairs × 2 types = 6 records
         trade_locs = self._make_trade_locations(names)
         loc_svc = self._make_location_service(trade_locs)
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         n = len(trade_locs)
         expected = n * (n - 1) // 2 * 2  # pairs × 2 travel types
         assert len(result) == expected
 
-    def test_idempotent_when_distances_exist(self) -> None:
+    @pytest.mark.anyio
+    async def test_idempotent_when_distances_exist(self) -> None:
         """Returns [] and creates nothing when distances already exist."""
         existing = [
             LocationDistance(id="d1", from_location_id="a", to_location_id="b", distance=1.0, travel_type="quantum")
@@ -257,37 +265,40 @@ class TestSeedDistances:
         loc_svc = self._make_location_service([])
         dist_svc = self._make_distance_service(existing)
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         assert result == []
         dist_svc.create.assert_not_called()
 
-    def test_creates_quantum_and_scm_records_per_pair(self) -> None:
+    @pytest.mark.anyio
+    async def test_creates_quantum_and_scm_records_per_pair(self) -> None:
         """Each unique pair produces one quantum and one scm record."""
         names = list(_LOCATION_COORDS.keys())[:2]
         trade_locs = self._make_trade_locations(names)
         loc_svc = self._make_location_service(trade_locs)
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         travel_types = [r.travel_type for r in result]
         assert travel_types.count("quantum") == 1
         assert travel_types.count("scm") == 1
 
-    def test_distance_values_are_positive(self) -> None:
+    @pytest.mark.anyio
+    async def test_distance_values_are_positive(self) -> None:
         """All computed distances are > 0."""
         names = list(_LOCATION_COORDS.keys())[:3]
         trade_locs = self._make_trade_locations(names)
         loc_svc = self._make_location_service(trade_locs)
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         for record in result:
             assert record.distance > 0
 
-    def test_only_trade_locations_included(self) -> None:
+    @pytest.mark.anyio
+    async def test_only_trade_locations_included(self) -> None:
         """Non-trade-terminal locations are excluded."""
         names = list(_LOCATION_COORDS.keys())[:2]
         trade_locs = self._make_trade_locations(names)
@@ -295,12 +306,13 @@ class TestSeedDistances:
         loc_svc = self._make_location_service(trade_locs + [non_trade])
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         # Still only pairs from the 2 trade locations
         assert len(result) == 2  # 1 pair × 2 travel types
 
-    def test_locations_without_coords_are_skipped(self) -> None:
+    @pytest.mark.anyio
+    async def test_locations_without_coords_are_skipped(self) -> None:
         """Locations whose name is absent from _LOCATION_COORDS are skipped."""
         trade_locs = [
             Location(id="loc-0", name="Port Olisar", location_type="station", has_trade_terminal=True),
@@ -309,18 +321,19 @@ class TestSeedDistances:
         loc_svc = self._make_location_service(trade_locs)
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         assert result == []
 
-    def test_all_created_records_have_ids(self) -> None:
+    @pytest.mark.anyio
+    async def test_all_created_records_have_ids(self) -> None:
         """Every returned LocationDistance has an id assigned."""
         names = list(_LOCATION_COORDS.keys())[:2]
         trade_locs = self._make_trade_locations(names)
         loc_svc = self._make_location_service(trade_locs)
         dist_svc = self._make_distance_service()
 
-        result = seed_distances(loc_svc, dist_svc)
+        result = await seed_distances(loc_svc, dist_svc)
 
         for record in result:
             assert record.id is not None

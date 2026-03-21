@@ -14,81 +14,81 @@ class LocationServiceImpl(LocationService):
     def _invalidate_cache(self) -> None:
         self._cache.clear()
 
-    def create(self, location: Location) -> Location:
-        result = self._repository.save(location)
+    async def create(self, location: Location) -> Location:
+        result = await self._repository.save(location)
         self._invalidate_cache()
         return result
 
-    def get(self, location_id: str) -> Location:
-        location = self._repository.find_by_id(location_id)
+    async def get(self, location_id: str) -> Location:
+        location = await self._repository.find_by_id(location_id)
         if location is None:
             raise LocationNotFoundError(location_id)
         return location
 
-    def list_all(self) -> list[Location]:
+    async def list_all(self) -> list[Location]:
         key = "list_all"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.find_all()
+        result = await self._repository.find_all()
         self._cache[key] = result
         return result
 
-    def list_by_type(self, location_type: str) -> list[Location]:
+    async def list_by_type(self, location_type: str) -> list[Location]:
         key = f"list_by_type:{location_type}"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.find_by_type(location_type)
+        result = await self._repository.find_by_type(location_type)
         self._cache[key] = result
         return result
 
-    def list_children(self, parent_id: str) -> list[Location]:
+    async def list_children(self, parent_id: str) -> list[Location]:
         key = f"list_children:{parent_id}"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.find_children(parent_id)
+        result = await self._repository.find_children(parent_id)
         self._cache[key] = result
         return result
 
-    def list_by_type_and_parent(self, location_type: str, parent_id: str) -> list[Location]:
+    async def list_by_type_and_parent(self, location_type: str, parent_id: str) -> list[Location]:
         key = f"list_by_type_and_parent:{location_type}:{parent_id}"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.find_by_type_and_parent(location_type, parent_id)
+        result = await self._repository.find_by_type_and_parent(location_type, parent_id)
         self._cache[key] = result
         return result
 
-    def update(self, location_id: str, location: Location) -> Location:
-        existing = self._repository.find_by_id(location_id)
+    async def update(self, location_id: str, location: Location) -> Location:
+        existing = await self._repository.find_by_id(location_id)
         if existing is None:
             raise LocationNotFoundError(location_id)
-        updated = self._repository.update(location_id, location)
+        updated = await self._repository.update(location_id, location)
         if updated is None:
             raise LocationNotFoundError(location_id)
         self._invalidate_cache()
         return updated
 
-    def delete(self, location_id: str) -> None:
-        if not self._repository.delete(location_id):
+    async def delete(self, location_id: str) -> None:
+        if not await self._repository.delete(location_id):
             raise LocationNotFoundError(location_id)
         self._invalidate_cache()
 
-    def search_by_name(self, query: str) -> list[Location]:
+    async def search_by_name(self, query: str) -> list[Location]:
         if not query:
             return []
         key = f"search_by_name:{query}"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.search_by_name(query)
+        result = await self._repository.search_by_name(query)
         self._cache[key] = result
         return result
 
-    def get_ancestors(self, location_id: str) -> list[Location]:
-        location = self._repository.find_by_id(location_id)
+    async def get_ancestors(self, location_id: str) -> list[Location]:
+        location = await self._repository.find_by_id(location_id)
         if location is None:
             raise LocationNotFoundError(location_id)
         key = f"get_ancestors:{location_id}"
         if key in self._cache:
             return self._cache[key]
-        result = self._repository.find_ancestors(location_id)
+        result = await self._repository.find_ancestors(location_id)
         self._cache[key] = result
         return result

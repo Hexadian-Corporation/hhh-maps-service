@@ -1,6 +1,6 @@
 """Unit tests for LocationDistanceServiceImpl TTL cache behavior."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -23,48 +23,52 @@ def _make_distance(
     )
 
 
-def _make_service(repo: MagicMock | None = None) -> tuple[LocationDistanceServiceImpl, MagicMock]:
-    repo = repo or MagicMock()
+def _make_service(repo: AsyncMock | None = None) -> tuple[LocationDistanceServiceImpl, AsyncMock]:
+    repo = repo or AsyncMock()
     return LocationDistanceServiceImpl(repo), repo
 
 
 class TestCacheHit:
     """Verify second call within TTL returns cached result (repo not called again)."""
 
-    def test_get_by_location_cached_on_second_call(self) -> None:
+    @pytest.mark.anyio
+    async def test_get_by_location_cached_on_second_call(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = [_make_distance()]
 
-        service.get_by_location("loc-a")
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 1
 
-    def test_get_by_location_different_ids_not_cached(self) -> None:
+    @pytest.mark.anyio
+    async def test_get_by_location_different_ids_not_cached(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = []
 
-        service.get_by_location("loc-a")
-        service.get_by_location("loc-b")
+        await service.get_by_location("loc-a")
+        await service.get_by_location("loc-b")
 
         assert repo.find_by_location.call_count == 2
 
-    def test_get_by_pair_cached_on_second_call(self) -> None:
+    @pytest.mark.anyio
+    async def test_get_by_pair_cached_on_second_call(self) -> None:
         service, repo = _make_service()
         repo.find_by_pair.return_value = _make_distance()
 
-        service.get_by_pair("loc-a", "loc-b")
-        service.get_by_pair("loc-a", "loc-b")
+        await service.get_by_pair("loc-a", "loc-b")
+        await service.get_by_pair("loc-a", "loc-b")
 
         assert repo.find_by_pair.call_count == 1
 
-    def test_get_by_pair_normalized_key(self) -> None:
+    @pytest.mark.anyio
+    async def test_get_by_pair_normalized_key(self) -> None:
         """A→B and B→A should hit the same cache entry."""
         service, repo = _make_service()
         repo.find_by_pair.return_value = _make_distance()
 
-        service.get_by_pair("loc-a", "loc-b")
-        service.get_by_pair("loc-b", "loc-a")
+        await service.get_by_pair("loc-a", "loc-b")
+        await service.get_by_pair("loc-b", "loc-a")
 
         assert repo.find_by_pair.call_count == 1
 
@@ -72,61 +76,66 @@ class TestCacheHit:
 class TestCacheInvalidation:
     """Verify CUD operations invalidate cache."""
 
-    def test_create_invalidates_cache(self) -> None:
+    @pytest.mark.anyio
+    async def test_create_invalidates_cache(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = [_make_distance()]
         repo.save.return_value = _make_distance("dist-2")
 
-        service.get_by_location("loc-a")
-        service.create(_make_distance(distance_id=None))
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
+        await service.create(_make_distance(distance_id=None))
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 2
 
-    def test_update_invalidates_cache(self) -> None:
+    @pytest.mark.anyio
+    async def test_update_invalidates_cache(self) -> None:
         service, repo = _make_service()
         existing = _make_distance()
         repo.find_by_location.return_value = [existing]
         repo.find_by_id.return_value = existing
         repo.update.return_value = existing
 
-        service.get_by_location("loc-a")
-        service.update("dist-1", existing)
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
+        await service.update("dist-1", existing)
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 2
 
-    def test_delete_invalidates_cache(self) -> None:
+    @pytest.mark.anyio
+    async def test_delete_invalidates_cache(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = [_make_distance()]
         repo.delete.return_value = True
 
-        service.get_by_location("loc-a")
-        service.delete("dist-1")
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
+        await service.delete("dist-1")
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 2
 
-    def test_failed_delete_does_not_invalidate_cache(self) -> None:
+    @pytest.mark.anyio
+    async def test_failed_delete_does_not_invalidate_cache(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = [_make_distance()]
         repo.delete.return_value = False
 
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
         with pytest.raises(LocationDistanceNotFoundError):
-            service.delete("missing")
-        service.get_by_location("loc-a")
+            await service.delete("missing")
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 1
 
-    def test_failed_update_does_not_invalidate_cache(self) -> None:
+    @pytest.mark.anyio
+    async def test_failed_update_does_not_invalidate_cache(self) -> None:
         service, repo = _make_service()
         repo.find_by_location.return_value = [_make_distance()]
         repo.find_by_id.return_value = None
 
-        service.get_by_location("loc-a")
+        await service.get_by_location("loc-a")
         with pytest.raises(LocationDistanceNotFoundError):
-            service.update("missing", _make_distance())
-        service.get_by_location("loc-a")
+            await service.update("missing", _make_distance())
+        await service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 1

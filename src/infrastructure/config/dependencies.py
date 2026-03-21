@@ -1,8 +1,7 @@
 from hexadian_auth_common.fastapi import JWTAuthDependency
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from opyoid import Module, SingletonScope
-from pymongo import MongoClient
 from pymongo.collation import Collation
-from pymongo.collection import Collection
 
 from src.application.ports.inbound.location_distance_service import LocationDistanceService
 from src.application.ports.inbound.location_service import LocationService
@@ -21,32 +20,17 @@ class AppModule(Module):
     def __init__(self, settings: Settings) -> None:
         super().__init__()
         self._settings = settings
+        client = AsyncIOMotorClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        self._location_collection: AsyncIOMotorCollection = db["locations"]
+        self._distance_collection: AsyncIOMotorCollection = db["location_distances"]
 
     def configure(self) -> None:
-        client = MongoClient(self._settings.mongo_uri)
-        db = client[self._settings.mongo_db]
-        collection = db["locations"]
-        distance_collection = db["location_distances"]
-
-        collection.create_index("location_type")
-        collection.create_index("parent_id")
-        collection.create_index("name", collation=Collation(locale="en", strength=2))
-
-        distance_collection.drop_index(
-            "from_location_id_1_to_location_id_1",
-        ) if "from_location_id_1_to_location_id_1" in distance_collection.index_information() else None
-        distance_collection.create_index(
-            [("from_location_id", 1), ("to_location_id", 1), ("travel_type", 1)],
-            unique=True,
-        )
-        distance_collection.create_index("from_location_id")
-        distance_collection.create_index("to_location_id")
-
-        self.bind(Collection, to_instance=collection, scope=SingletonScope)
+        self.bind(AsyncIOMotorCollection, to_instance=self._location_collection, scope=SingletonScope)
         self.bind(LocationRepository, to_class=MongoLocationRepository, scope=SingletonScope)
         self.bind(LocationService, to_class=LocationServiceImpl, scope=SingletonScope)
 
-        distance_repo = MongoLocationDistanceRepository(distance_collection)
+        distance_repo = MongoLocationDistanceRepository(self._distance_collection)
         self.bind(LocationDistanceRepository, to_instance=distance_repo, scope=SingletonScope)
         self.bind(LocationDistanceService, to_class=LocationDistanceServiceImpl, scope=SingletonScope)
 
@@ -55,3 +39,18 @@ class AppModule(Module):
             algorithm=self._settings.jwt_algorithm,
         )
         self.bind(JWTAuthDependency, to_instance=jwt_auth, scope=SingletonScope)
+
+    async def create_indexes(self) -> None:
+        await self._location_collection.create_index("location_type")
+        await self._location_collection.create_index("parent_id")
+        await self._location_collection.create_index("name", collation=Collation(locale="en", strength=2))
+
+        info = await self._distance_collection.index_information()
+        if "from_location_id_1_to_location_id_1" in info:
+            await self._distance_collection.drop_index("from_location_id_1_to_location_id_1")
+        await self._distance_collection.create_index(
+            [("from_location_id", 1), ("to_location_id", 1), ("travel_type", 1)],
+            unique=True,
+        )
+        await self._distance_collection.create_index("from_location_id")
+        await self._distance_collection.create_index("to_location_id")

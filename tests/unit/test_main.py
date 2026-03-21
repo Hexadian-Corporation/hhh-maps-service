@@ -1,10 +1,10 @@
 """Unit tests for src.main – app creation, lifespan seeding, and CORS middleware."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-# Patch MongoClient before importing src.main to prevent the module-level
+# Patch AsyncIOMotorClient before importing src.main to prevent the module-level
 # ``app = create_app()`` from connecting to MongoDB during test collection.
-with patch("src.infrastructure.config.dependencies.MongoClient", return_value=MagicMock()):
+with patch("src.infrastructure.config.dependencies.AsyncIOMotorClient", return_value=MagicMock()):
     from src.main import create_app
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,16 +14,16 @@ from fastapi.testclient import TestClient
 class TestLifespanSeedsLocations:
     """Verify that create_app produces an app whose lifespan calls seed_locations and seed_distances."""
 
-    @patch("src.main.seed_distances")
-    @patch("src.main.seed_locations")
+    @patch("src.main.seed_distances", new_callable=AsyncMock)
+    @patch("src.main.seed_locations", new_callable=AsyncMock)
     @patch("src.main.Injector")
     @patch("src.main.Settings")
     def test_seed_locations_called_on_startup(
         self,
         mock_settings_cls: MagicMock,
         mock_injector_cls: MagicMock,
-        mock_seed: MagicMock,
-        mock_seed_distances: MagicMock,
+        mock_seed: AsyncMock,
+        mock_seed_distances: AsyncMock,
     ) -> None:
         mock_settings = MagicMock()
         mock_settings.app_name = "test-app"
@@ -36,7 +36,11 @@ class TestLifespanSeedsLocations:
         mock_injector.inject.side_effect = [mock_service, mock_distance_service, mock_jwt_auth]
         mock_injector_cls.return_value = mock_injector
 
-        app = create_app()
+        mock_module = MagicMock()
+        mock_module.create_indexes = AsyncMock()
+
+        with patch("src.main.AppModule", return_value=mock_module):
+            app = create_app()
 
         # seed_locations is called during lifespan startup, not during create_app
         mock_seed.assert_not_called()
@@ -47,16 +51,16 @@ class TestLifespanSeedsLocations:
             mock_seed.assert_called_once_with(mock_service)
             mock_seed_distances.assert_called_once_with(mock_service, mock_distance_service)
 
-    @patch("src.main.seed_distances")
-    @patch("src.main.seed_locations")
+    @patch("src.main.seed_distances", new_callable=AsyncMock)
+    @patch("src.main.seed_locations", new_callable=AsyncMock)
     @patch("src.main.Injector")
     @patch("src.main.Settings")
     def test_health_endpoint_still_works(
         self,
         mock_settings_cls: MagicMock,
         mock_injector_cls: MagicMock,
-        mock_seed: MagicMock,
-        mock_seed_distances: MagicMock,
+        mock_seed: AsyncMock,
+        mock_seed_distances: AsyncMock,
     ) -> None:
         mock_settings = MagicMock()
         mock_settings.app_name = "test-maps"
@@ -66,7 +70,11 @@ class TestLifespanSeedsLocations:
         mock_injector.inject.side_effect = [MagicMock(), MagicMock(), MagicMock()]
         mock_injector_cls.return_value = mock_injector
 
-        app = create_app()
+        mock_module = MagicMock()
+        mock_module.create_indexes = AsyncMock()
+
+        with patch("src.main.AppModule", return_value=mock_module):
+            app = create_app()
         with TestClient(app) as client:
             resp = client.get("/health")
             assert resp.status_code == 200
@@ -80,22 +88,26 @@ def _create_test_app() -> TestClient:
         patch("src.main.Injector") as mock_injector_cls,
         patch("src.main.init_router"),
         patch("src.main.init_distance_router"),
-        patch("src.main.seed_locations"),
-        patch("src.main.seed_distances"),
+        patch("src.main.seed_locations", new_callable=AsyncMock),
+        patch("src.main.seed_distances", new_callable=AsyncMock),
     ):
         mock_settings = MagicMock()
         mock_settings.app_name = "test-maps"
         mock_settings_cls.return_value = mock_settings
         mock_injector_cls.return_value = MagicMock()
 
-        app = create_app()
+        mock_module = MagicMock()
+        mock_module.create_indexes = AsyncMock()
+
+        with patch("src.main.AppModule", return_value=mock_module):
+            app = create_app()
 
     cors_middleware = [m for m in app.user_middleware if m.cls is CORSMiddleware]
     assert len(cors_middleware) == 1
     return TestClient(app)
 
 
-@patch("src.infrastructure.config.dependencies.MongoClient")
+@patch("src.infrastructure.config.dependencies.AsyncIOMotorClient")
 class TestCORSMiddleware:
     """Tests for CORS middleware on the FastAPI app."""
 

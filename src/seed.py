@@ -1,5 +1,6 @@
 """Seed script to populate the maps-service with test locations for hauling contracts."""
 
+import asyncio
 import dataclasses
 import math
 
@@ -62,7 +63,7 @@ def build_locations(system_ids: dict[str, str]) -> list[Location]:
     ]
 
 
-def seed_locations(service: LocationService) -> list[Location]:
+async def seed_locations(service: LocationService) -> list[Location]:
     """Insert all seed systems and locations via *service*.
 
     The function is **idempotent** — it checks for existing systems
@@ -72,26 +73,22 @@ def seed_locations(service: LocationService) -> list[Location]:
     or an empty list if data was already seeded.
     """
     # Idempotency guard: skip if systems already exist
-    existing_systems = service.list_by_type("system")
+    existing_systems = await service.list_by_type("system")
     if existing_systems:
         return []
 
-    created: list[Location] = []
-
-    # 1. Create systems first so we can reference their IDs
-    system_ids: dict[str, str] = {}
-    for system in SYSTEMS:
-        saved = service.create(dataclasses.replace(system))
+    # 1. Create systems in parallel so we can reference their IDs
+    created_systems = await asyncio.gather(*[service.create(dataclasses.replace(system)) for system in SYSTEMS])
+    for saved in created_systems:
         if saved.id is None:
             raise ValueError(f"LocationService.create returned a Location without an id for system '{saved.name}'")
-        system_ids[saved.name] = saved.id
-        created.append(saved)
 
-    # 2. Create child locations with parent_id set
-    for location in build_locations(system_ids):
-        created.append(service.create(location))
+    system_ids: dict[str, str] = {saved.name: saved.id for saved in created_systems}
 
-    return created
+    # 2. Create child locations in parallel with parent_id set
+    created_children = await asyncio.gather(*[service.create(location) for location in build_locations(system_ids)])
+
+    return list(created_systems) + list(created_children)
 
 
 # ---------------------------------------------------------------------------
@@ -119,7 +116,7 @@ def compute_distance(coord_a: tuple[float, float, float], coord_b: tuple[float, 
     return math.sqrt((coord_a[0] - coord_b[0]) ** 2 + (coord_a[1] - coord_b[1]) ** 2 + (coord_a[2] - coord_b[2]) ** 2)
 
 
-def seed_distances(
+async def seed_distances(
     location_service: LocationService,
     distance_service: LocationDistanceService,
 ) -> list[LocationDistance]:
@@ -134,13 +131,13 @@ def seed_distances(
     Returns every created :class:`LocationDistance`, or an empty list if
     records already exist.
     """
-    if distance_service.list_all():
+    if await distance_service.list_all():
         return []
 
-    locations = location_service.list_all()
+    locations = await location_service.list_all()
     trade_locations = [loc for loc in locations if loc.has_trade_terminal and loc.id is not None]
 
-    created: list[LocationDistance] = []
+    to_create: list[LocationDistance] = []
     for i, loc_a in enumerate(trade_locations):
         for loc_b in trade_locations[i + 1 :]:
             coord_a = _LOCATION_COORDS.get(loc_a.name)
@@ -151,15 +148,17 @@ def seed_distances(
             dist_km = compute_distance(coord_a, coord_b)
 
             for travel_type in ("quantum", "scm"):
-                ld = LocationDistance(
-                    from_location_id=loc_a.id,
-                    to_location_id=loc_b.id,
-                    distance=round(dist_km * 1000, 2),  # store in metres
-                    travel_type=travel_type,
+                to_create.append(
+                    LocationDistance(
+                        from_location_id=loc_a.id,
+                        to_location_id=loc_b.id,
+                        distance=round(dist_km * 1000, 2),  # store in metres
+                        travel_type=travel_type,
+                    )
                 )
-                created.append(distance_service.create(ld))
 
-    return created
+    created = await asyncio.gather(*[distance_service.create(ld) for ld in to_create])
+    return list(created)
 
 
 if __name__ == "__main__":
@@ -168,10 +167,15 @@ if __name__ == "__main__":
     from src.infrastructure.config.dependencies import AppModule
     from src.infrastructure.config.settings import Settings
 
-    settings = Settings()
-    injector = Injector([AppModule(settings)])
-    location_service = injector.inject(LocationService)
-    created = seed_locations(location_service)
-    print(f"Seeded {len(created)} locations.")
-    for loc in created:
-        print(f"  [{loc.location_type}] {loc.name} (id={loc.id})")
+    async def _main() -> None:
+        settings = Settings()
+        module = AppModule(settings)
+        injector = Injector([module])
+        await module.create_indexes()
+        location_service = injector.inject(LocationService)
+        created = await seed_locations(location_service)
+        print(f"Seeded {len(created)} locations.")
+        for loc in created:
+            print(f"  [{loc.location_type}] {loc.name} (id={loc.id})")
+
+    asyncio.run(_main())

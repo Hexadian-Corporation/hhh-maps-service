@@ -30,14 +30,14 @@ def init_distance_router(service: LocationDistanceService) -> None:
 
 
 @distance_router.post("/distances/", response_model=LocationDistanceDTO, status_code=201, dependencies=_write)
-def create_distance(dto: LocationDistanceCreateDTO) -> LocationDistanceDTO:
+async def create_distance(dto: LocationDistanceCreateDTO) -> LocationDistanceDTO:
     distance = LocationDistanceApiMapper.create_to_domain(dto)
-    created = _distance_service.create(distance)
+    created = await _distance_service.create(distance)
     return LocationDistanceApiMapper.to_dto(created)
 
 
 @distance_router.get("/distances/", response_model=list[LocationDistanceDTO], dependencies=_read)
-def list_distances(
+async def list_distances(
     from_location_id: str | None = None,
     to_location_id: str | None = None,
     travel_type: str | None = None,
@@ -46,29 +46,31 @@ def list_distances(
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     if from_location_id and to_location_id:
         try:
-            distance = _distance_service.get_by_pair(from_location_id, to_location_id)
+            distance = await _distance_service.get_by_pair(from_location_id, to_location_id)
             return [LocationDistanceApiMapper.to_dto(distance)]
         except LocationDistanceNotFoundError:
             return []
-    distances = _distance_service.list_by_travel_type(travel_type) if travel_type else _distance_service.list_all()
+    distances = (
+        await _distance_service.list_by_travel_type(travel_type) if travel_type else await _distance_service.list_all()
+    )
     return [LocationDistanceApiMapper.to_dto(d) for d in distances]
 
 
 @distance_router.put("/distances/{distance_id}", response_model=LocationDistanceDTO, dependencies=_write)
-def update_distance(distance_id: str, dto: LocationDistanceUpdateDTO) -> LocationDistanceDTO:
+async def update_distance(distance_id: str, dto: LocationDistanceUpdateDTO) -> LocationDistanceDTO:
     try:
-        existing = _distance_service.get(distance_id)
+        existing = await _distance_service.get(distance_id)
     except LocationDistanceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     merged = LocationDistanceApiMapper.update_to_domain(dto, existing)
-    updated = _distance_service.update(distance_id, merged)
+    updated = await _distance_service.update(distance_id, merged)
     return LocationDistanceApiMapper.to_dto(updated)
 
 
 @distance_router.delete("/distances/{distance_id}", status_code=204, dependencies=_delete)
-def delete_distance(distance_id: str) -> None:
+async def delete_distance(distance_id: str) -> None:
     try:
-        _distance_service.delete(distance_id)
+        await _distance_service.delete(distance_id)
     except LocationDistanceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -81,7 +83,7 @@ def delete_distance(distance_id: str) -> None:
     response_model=list[LocationDistanceDTO],
     dependencies=_read,
 )
-def get_distances_from_location(location_id: str, response: Response) -> list[LocationDistanceDTO]:
-    distances = _distance_service.get_by_location(location_id)
+async def get_distances_from_location(location_id: str, response: Response) -> list[LocationDistanceDTO]:
+    distances = await _distance_service.get_by_location(location_id)
     response.headers["Cache-Control"] = _CACHE_CONTROL_MAX_AGE
     return [LocationDistanceApiMapper.to_dto(d) for d in distances]
