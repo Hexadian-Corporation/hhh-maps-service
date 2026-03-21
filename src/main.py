@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
         await seed_locations(location_service)
         await seed_distances(location_service, distance_service)
         yield
+        module.close()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.add_middleware(

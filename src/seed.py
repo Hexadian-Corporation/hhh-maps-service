@@ -77,7 +77,7 @@ async def seed_locations(service: LocationService) -> list[Location]:
     if existing_systems:
         return []
 
-    # 1. Create systems in parallel so we can reference their IDs
+    # 1. Create systems first (in parallel) so we can reference their IDs
     created_systems = await asyncio.gather(*[service.create(dataclasses.replace(system)) for system in SYSTEMS])
     for saved in created_systems:
         if saved.id is None:

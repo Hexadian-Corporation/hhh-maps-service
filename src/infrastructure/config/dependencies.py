@@ -20,8 +20,8 @@ class AppModule(Module):
     def __init__(self, settings: Settings) -> None:
         super().__init__()
         self._settings = settings
-        client = AsyncIOMotorClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
+        self._client = AsyncIOMotorClient(settings.mongo_uri)
+        db = self._client[settings.mongo_db]
         self._location_collection: AsyncIOMotorCollection = db["locations"]
         self._distance_collection: AsyncIOMotorCollection = db["location_distances"]
 
@@ -39,6 +39,10 @@ class AppModule(Module):
             algorithm=self._settings.jwt_algorithm,
         )
         self.bind(JWTAuthDependency, to_instance=jwt_auth, scope=SingletonScope)
+
+    def close(self) -> None:
+        """Close the motor client and release connection pool resources."""
+        self._client.close()
 
     async def create_indexes(self) -> None:
         await self._location_collection.create_index("location_type")
