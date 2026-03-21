@@ -24,3 +24,6 @@ class LocationDistanceRepository(ABC):
 
     @abstractmethod
     def find_all(self) -> list[LocationDistance]: ...
+
+    @abstractmethod
+    def find_by_travel_type(self, travel_type: str) -> list[LocationDistance]: ...

@@ -68,6 +68,10 @@ class MongoLocationDistanceRepository(LocationDistanceRepository):
         cursor = self._collection.find({})
         return [LocationDistancePersistenceMapper.to_domain(doc) for doc in cursor]
 
+    def find_by_travel_type(self, travel_type: str) -> list[LocationDistance]:
+        cursor = self._collection.find({"travel_type": travel_type})
+        return [LocationDistancePersistenceMapper.to_domain(doc) for doc in cursor]
+
     @staticmethod
     def _normalize_pair(distance: LocationDistance) -> LocationDistance:
         """Ensure from_location_id < to_location_id for consistent pair storage."""

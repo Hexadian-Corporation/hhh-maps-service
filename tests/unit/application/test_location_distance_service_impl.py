@@ -146,3 +146,45 @@ class TestCacheInvalidation:
         service.get_by_location("loc-a")
 
         assert repo.find_by_location.call_count == 1
+
+
+class TestListByTravelType:
+    """Verify list_by_travel_type caches results per travel_type."""
+
+    def test_list_by_travel_type_returns_matching_distances(self) -> None:
+        service, repo = _make_service()
+        repo.find_by_travel_type.return_value = [_make_distance()]
+
+        result = service.list_by_travel_type("wormhole")
+
+        assert len(result) == 1
+        repo.find_by_travel_type.assert_called_once_with("wormhole")
+
+    def test_list_by_travel_type_cached_on_second_call(self) -> None:
+        service, repo = _make_service()
+        repo.find_by_travel_type.return_value = [_make_distance()]
+
+        service.list_by_travel_type("wormhole")
+        service.list_by_travel_type("wormhole")
+
+        assert repo.find_by_travel_type.call_count == 1
+
+    def test_list_by_travel_type_different_keys_not_shared(self) -> None:
+        service, repo = _make_service()
+        repo.find_by_travel_type.return_value = []
+
+        service.list_by_travel_type("wormhole")
+        service.list_by_travel_type("quantum")
+
+        assert repo.find_by_travel_type.call_count == 2
+
+    def test_list_by_travel_type_cache_invalidated_on_create(self) -> None:
+        service, repo = _make_service()
+        repo.find_by_travel_type.return_value = [_make_distance()]
+        repo.save.return_value = _make_distance("dist-new")
+
+        service.list_by_travel_type("wormhole")
+        service.create(_make_distance(distance_id=None))
+        service.list_by_travel_type("wormhole")
+
+        assert repo.find_by_travel_type.call_count == 2

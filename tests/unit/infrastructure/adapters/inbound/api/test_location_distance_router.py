@@ -49,8 +49,8 @@ class TestCreateDistanceEndpoint:
         assert data["travel_type"] == "quantum"
 
 
-class TestGetDistanceByPairEndpoint:
-    def test_get_by_pair_returns_200(self) -> None:
+class TestListDistancesEndpoint:
+    def test_get_by_pair_returns_list_with_match(self) -> None:
         service = MagicMock()
         service.get_by_pair.return_value = _make_distance()
         init_distance_router(service)
@@ -60,10 +60,12 @@ class TestGetDistanceByPairEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["from_location_id"] == "loc-a"
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["from_location_id"] == "loc-a"
         assert response.headers.get("cache-control") == "max-age=300"
 
-    def test_get_by_pair_returns_404_when_not_found(self) -> None:
+    def test_get_by_pair_returns_empty_list_when_not_found(self) -> None:
         service = MagicMock()
         service.get_by_pair.side_effect = LocationDistanceNotFoundError("missing")
         init_distance_router(service)
@@ -71,7 +73,49 @@ class TestGetDistanceByPairEndpoint:
         client = _make_app()
         response = client.get("/distances/?from_location_id=loc-x&to_location_id=loc-y")
 
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_filter_by_travel_type_returns_matching_list(self) -> None:
+        service = MagicMock()
+        service.list_by_travel_type.return_value = [_make_distance()]
+        init_distance_router(service)
+
+        client = _make_app()
+        response = client.get("/distances/?travel_type=wormhole")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        service.list_by_travel_type.assert_called_once_with("wormhole")
+        assert response.headers.get("cache-control") == "max-age=300"
+
+    def test_no_params_returns_all_distances(self) -> None:
+        service = MagicMock()
+        service.list_all.return_value = [_make_distance("d-1"), _make_distance("d-2")]
+        init_distance_router(service)
+
+        client = _make_app()
+        response = client.get("/distances/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        service.list_all.assert_called_once()
+        assert response.headers.get("cache-control") == "max-age=300"
+
+    def test_filter_by_travel_type_returns_empty_list(self) -> None:
+        service = MagicMock()
+        service.list_by_travel_type.return_value = []
+        init_distance_router(service)
+
+        client = _make_app()
+        response = client.get("/distances/?travel_type=on_foot")
+
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 class TestUpdateDistanceEndpoint:

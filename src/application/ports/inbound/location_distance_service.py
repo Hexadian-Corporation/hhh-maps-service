@@ -24,3 +24,6 @@ class LocationDistanceService(ABC):
 
     @abstractmethod
     def list_all(self) -> list[LocationDistance]: ...
+
+    @abstractmethod
+    def list_by_travel_type(self, travel_type: str) -> list[LocationDistance]: ...

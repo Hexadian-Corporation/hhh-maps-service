@@ -63,3 +63,11 @@ class LocationDistanceServiceImpl(LocationDistanceService):
 
     def list_all(self) -> list[LocationDistance]:
         return self._repository.find_all()
+
+    def list_by_travel_type(self, travel_type: str) -> list[LocationDistance]:
+        key = f"by_travel_type:{travel_type}"
+        if key in self._cache:
+            return cast(list[LocationDistance], self._cache[key])
+        result = self._repository.find_by_travel_type(travel_type)
+        self._cache[key] = result
+        return result
