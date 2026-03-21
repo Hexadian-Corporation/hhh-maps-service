@@ -1,3 +1,5 @@
+<critical>**Configuration externalization:** Any new configuration value that could vary between environments (URLs, secrets, ports, origins, timeouts, cache sizes, etc.) MUST be externalized as a `Settings` field with an environment variable and a sensible default. After adding it, also create a task in `hexadian-hauling-helper` to wire the variable in `docker-compose.yml`.</critical>
+
 <critical>Note: This is a living document and will be updated as we refine our processes. Always refer back to this for the latest guidelines. Update whenever necessary.</critical>
 
 <critical>**Development Workflow:** All changes go through a branch + PR — no direct commits to `main` unless explicitly instructed. See `.github/instructions/development-workflow.instructions.md`.</critical>
@@ -68,7 +70,14 @@ src/
 |---|---|---|
 | `HHH_MAPS_MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
 | `HHH_MAPS_MONGO_DB` | `hhh_maps` | Database name |
+| `HHH_MAPS_HOST` | `0.0.0.0` | Host address to bind the server |
 | `HHH_MAPS_PORT` | `8003` | Service port |
+| `HEXADIAN_AUTH_JWT_SECRET` | `change-me-in-production` | Shared secret for JWT signature verification |
+| `HHH_MAPS_JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
+| `HHH_MAPS_CORS_ORIGINS` | `["http://localhost:3000","http://localhost:3001"]` | Allowed CORS origins (JSON array) |
+| `HHH_MAPS_CACHE_TTL_SECONDS` | `300` | TTL in seconds for in-memory location and distance caches |
+| `HHH_MAPS_LOCATION_CACHE_MAXSIZE` | `256` | Maximum entries for the location cache |
+| `HHH_MAPS_DISTANCE_CACHE_MAXSIZE` | `512` | Maximum entries for the distance cache |
 
 ## API
 

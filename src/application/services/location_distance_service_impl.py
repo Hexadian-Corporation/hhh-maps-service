@@ -9,9 +9,11 @@ from src.domain.models.location_distance import LocationDistance
 
 
 class LocationDistanceServiceImpl(LocationDistanceService):
-    def __init__(self, repository: LocationDistanceRepository) -> None:
+    def __init__(self, repository: LocationDistanceRepository, cache_maxsize: int = 512, cache_ttl: int = 300) -> None:
         self._repository = repository
-        self._cache: TTLCache[str, LocationDistance | list[LocationDistance]] = TTLCache(maxsize=512, ttl=300)
+        self._cache: TTLCache[str, LocationDistance | list[LocationDistance]] = TTLCache(
+            maxsize=cache_maxsize, ttl=cache_ttl
+        )
 
     def _invalidate_cache(self) -> None:
         self._cache.clear()
