@@ -17,6 +17,8 @@ On startup the service subscribes to two event types published by the dataminer 
 
 Only items where optimization-relevant key data has actually changed are counted; unchanged items are silently skipped.
 
+When at least one entity has a key-data change, the handler publishes a `locations.imported` or `distances.imported` event with the modified entity IDs so downstream services (graphs, routes) can react.
+
 ## Stack
 
 - Python 3.11+ / FastAPI

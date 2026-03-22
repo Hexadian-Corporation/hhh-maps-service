@@ -1,4 +1,5 @@
 from hexadian_auth_common.fastapi import JWTAuthDependency
+from hhh_events import EventPublisher
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from opyoid import Module, SingletonScope
 from pymongo.collation import Collation
@@ -50,12 +51,15 @@ class AppModule(Module):
         )
         self.bind(LocationDistanceService, to_instance=distance_service, scope=SingletonScope)
 
-        location_handler = LocationImportHandler(repository=location_repo)
+        publisher = EventPublisher(self.events_collection)
+
+        location_handler = LocationImportHandler(repository=location_repo, publisher=publisher)
         self.bind(LocationImportHandler, to_instance=location_handler, scope=SingletonScope)
 
         distance_handler = DistanceImportHandler(
             distance_repository=distance_repo,
             location_repository=location_repo,
+            publisher=publisher,
         )
         self.bind(DistanceImportHandler, to_instance=distance_handler, scope=SingletonScope)
 
