@@ -31,9 +31,14 @@ class TestLifespanSeedsLocations:
 
         mock_service = MagicMock()
         mock_distance_service = MagicMock()
+        mock_location_handler = MagicMock()
+        mock_distance_handler = MagicMock()
         mock_jwt_auth = MagicMock()
         mock_injector = MagicMock()
-        mock_injector.inject.side_effect = [mock_service, mock_distance_service, mock_jwt_auth]
+        mock_injector.inject.side_effect = [
+            mock_service, mock_distance_service,
+            mock_location_handler, mock_distance_handler, mock_jwt_auth,
+        ]
         mock_injector_cls.return_value = mock_injector
 
         mock_module = MagicMock()
@@ -67,7 +72,9 @@ class TestLifespanSeedsLocations:
         mock_settings_cls.return_value = mock_settings
 
         mock_injector = MagicMock()
-        mock_injector.inject.side_effect = [MagicMock(), MagicMock(), MagicMock()]
+        mock_injector.inject.side_effect = [
+            MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        ]
         mock_injector_cls.return_value = mock_injector
 
         mock_module = MagicMock()

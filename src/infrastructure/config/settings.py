@@ -14,5 +14,7 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 300
     location_cache_maxsize: int = 256
     distance_cache_maxsize: int = 512
+    events_mongo_uri: str = "mongodb://localhost:27017"
+    events_db: str = "hhh_events"
 
     model_config = {"env_prefix": "HHH_MAPS_"}

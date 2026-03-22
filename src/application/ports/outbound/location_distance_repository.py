@@ -27,3 +27,6 @@ class LocationDistanceRepository(ABC):
 
     @abstractmethod
     async def find_by_travel_type(self, travel_type: str) -> list[LocationDistance]: ...
+
+    @abstractmethod
+    async def upsert_by_pair(self, distance: LocationDistance) -> tuple[LocationDistance, bool]: ...

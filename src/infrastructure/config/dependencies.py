@@ -7,6 +7,7 @@ from src.application.ports.inbound.location_distance_service import LocationDist
 from src.application.ports.inbound.location_service import LocationService
 from src.application.ports.outbound.location_distance_repository import LocationDistanceRepository
 from src.application.ports.outbound.location_repository import LocationRepository
+from src.application.services.import_handler import DistanceImportHandler, LocationImportHandler
 from src.application.services.location_distance_service_impl import LocationDistanceServiceImpl
 from src.application.services.location_service_impl import LocationServiceImpl
 from src.infrastructure.adapters.outbound.persistence.mongo_location_distance_repository import (
@@ -24,6 +25,11 @@ class AppModule(Module):
         db = self._client[settings.mongo_db]
         self._location_collection: AsyncIOMotorCollection = db["locations"]
         self._distance_collection: AsyncIOMotorCollection = db["location_distances"]
+
+        events_client = AsyncIOMotorClient(settings.events_mongo_uri)
+        events_db = events_client[settings.events_db]
+        self.events_collection: AsyncIOMotorCollection = events_db["events"]
+        self.token_collection: AsyncIOMotorCollection = events_db["subscriber_tokens"]
 
     def configure(self) -> None:
         location_repo = MongoLocationRepository(self._location_collection)
@@ -43,6 +49,15 @@ class AppModule(Module):
             cache_ttl=self._settings.cache_ttl_seconds,
         )
         self.bind(LocationDistanceService, to_instance=distance_service, scope=SingletonScope)
+
+        location_handler = LocationImportHandler(repository=location_repo)
+        self.bind(LocationImportHandler, to_instance=location_handler, scope=SingletonScope)
+
+        distance_handler = DistanceImportHandler(
+            distance_repository=distance_repo,
+            location_repository=location_repo,
+        )
+        self.bind(DistanceImportHandler, to_instance=distance_handler, scope=SingletonScope)
 
         jwt_auth = JWTAuthDependency(
             secret=self._settings.jwt_secret,

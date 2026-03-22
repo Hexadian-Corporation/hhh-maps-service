@@ -93,3 +93,21 @@ class MongoLocationRepository(LocationRepository):
             ancestors.append(parent)
             current = parent
         return ancestors
+
+    _KEY_FIELDS = ("location_type", "in_game")
+
+    async def upsert_by_name(self, location: Location) -> tuple[Location, bool]:
+        existing = await self._collection.find_one({"name": location.name})
+        if existing is not None:
+            doc = LocationPersistenceMapper.to_document(location)
+            if not any(existing.get(f) != doc.get(f) for f in self._KEY_FIELDS):
+                return LocationPersistenceMapper.to_domain(existing), False
+        else:
+            doc = LocationPersistenceMapper.to_document(location)
+        result = await self._collection.find_one_and_update(
+            {"name": location.name},
+            {"$set": doc},
+            upsert=True,
+            return_document=True,
+        )
+        return LocationPersistenceMapper.to_domain(result), True
