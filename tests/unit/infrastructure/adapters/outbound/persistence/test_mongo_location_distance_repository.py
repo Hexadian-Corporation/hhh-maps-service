@@ -272,3 +272,47 @@ class TestMongoLocationDistanceRepositoryFindByTravelType:
         results = await repo.find_by_travel_type("on_foot")
 
         assert results == []
+
+
+class TestUpsertByPair:
+    @pytest.mark.anyio
+    async def test_inserts_new_distance(self) -> None:
+        collection = AsyncMock()
+        collection.find_one.return_value = None
+        collection.find_one_and_update.return_value = _make_doc()
+
+        repo = MongoLocationDistanceRepository(collection)
+        entity, changed = await repo.upsert_by_pair(_make_distance(None))
+
+        assert changed is True
+        assert entity.distance == 1500.0
+        collection.find_one_and_update.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_skips_when_no_key_changes(self) -> None:
+        collection = AsyncMock()
+        collection.find_one.return_value = _make_doc()
+
+        repo = MongoLocationDistanceRepository(collection)
+        entity, changed = await repo.upsert_by_pair(_make_distance(None))
+
+        assert changed is False
+        assert entity.distance == 1500.0
+
+    @pytest.mark.anyio
+    async def test_updates_when_distance_changed(self) -> None:
+        existing = _make_doc()
+        collection = AsyncMock()
+        collection.find_one.return_value = existing
+        updated = dict(existing)
+        updated["distance"] = 2000.0
+        collection.find_one_and_update.return_value = updated
+
+        repo = MongoLocationDistanceRepository(collection)
+        distance = _make_distance(None)
+        distance.distance = 2000.0
+        entity, changed = await repo.upsert_by_pair(distance)
+
+        assert changed is True
+        assert entity.distance == 2000.0
+        collection.find_one_and_update.assert_called_once()

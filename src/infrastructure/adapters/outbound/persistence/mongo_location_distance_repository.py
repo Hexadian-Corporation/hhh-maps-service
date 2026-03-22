@@ -72,6 +72,30 @@ class MongoLocationDistanceRepository(LocationDistanceRepository):
         docs = await self._collection.find({"travel_type": travel_type}).to_list(None)
         return [LocationDistancePersistenceMapper.to_domain(doc) for doc in docs]
 
+    _KEY_FIELDS = ("distance",)
+
+    async def upsert_by_pair(self, distance: LocationDistance) -> tuple[LocationDistance, bool]:
+        normalized = self._normalize_pair(distance)
+        query = {
+            "from_location_id": normalized.from_location_id,
+            "to_location_id": normalized.to_location_id,
+            "travel_type": normalized.travel_type,
+        }
+        existing = await self._collection.find_one(query)
+        if existing is not None:
+            doc = LocationDistancePersistenceMapper.to_document(normalized)
+            if not any(existing.get(f) != doc.get(f) for f in self._KEY_FIELDS):
+                return LocationDistancePersistenceMapper.to_domain(existing), False
+        else:
+            doc = LocationDistancePersistenceMapper.to_document(normalized)
+        result = await self._collection.find_one_and_update(
+            query,
+            {"$set": doc},
+            upsert=True,
+            return_document=True,
+        )
+        return LocationDistancePersistenceMapper.to_domain(result), True
+
     @staticmethod
     def _normalize_pair(distance: LocationDistance) -> LocationDistance:
         """Ensure from_location_id < to_location_id for consistent pair storage."""

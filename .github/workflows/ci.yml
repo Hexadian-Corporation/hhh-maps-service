@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Hexadian-Corporation/hexadian-hauling-helper
+          sparse-checkout: hhh-events
+          path: _parent
+      - run: cp -r _parent/hhh-events ../hhh-events
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
       - name: Check linting
@@ -29,6 +35,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: Hexadian-Corporation/hexadian-hauling-helper
+          sparse-checkout: hhh-events
+          path: _parent
+      - run: cp -r _parent/hhh-events ../hhh-events
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
       - name: Run tests with coverage

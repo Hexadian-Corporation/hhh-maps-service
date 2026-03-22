@@ -33,3 +33,6 @@ class LocationRepository(ABC):
 
     @abstractmethod
     async def find_ancestors(self, location_id: str) -> list[Location]: ...
+
+    @abstractmethod
+    async def upsert_by_name(self, location: Location) -> tuple[Location, bool]: ...

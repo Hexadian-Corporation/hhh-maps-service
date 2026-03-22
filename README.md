@@ -8,6 +8,17 @@ Location and map data management microservice for **H³ – Hexadian Hauling Hel
 
 Manages the Star Citizen universe map: star systems, planets, moons, stations, cities, and outposts. Tracks coordinates, trade terminals, and landing pad availability.
 
+### Event Subscriber
+
+On startup the service subscribes to two event types published by the dataminer via MongoDB Change Streams (`hhh-events`):
+
+- **`locations.bulk_import`** — upserts locations by name. Key data: `location_type`, `in_game`.
+- **`distances.bulk_import`** — resolves location names to IDs and upserts distances by pair. Key data: `distance`.
+
+Only items where optimization-relevant key data has actually changed are counted; unchanged items are silently skipped.
+
+When at least one entity has a key-data change, the handler publishes a `locations.imported` or `distances.imported` event with the modified entity IDs so downstream services (graphs, routes) can react.
+
 ## Stack
 
 - Python 3.11+ / FastAPI
@@ -72,6 +83,8 @@ uv run hhh up
 | `HHH_MAPS_CACHE_TTL_SECONDS` | `300` | TTL in seconds for in-memory location and distance caches |
 | `HHH_MAPS_LOCATION_CACHE_MAXSIZE` | `256` | Maximum entries for the location cache |
 | `HHH_MAPS_DISTANCE_CACHE_MAXSIZE` | `512` | Maximum entries for the distance cache |
+| `HHH_MAPS_EVENTS_MONGO_URI` | `mongodb://localhost:27017/?replicaSet=rs0&readPreference=nearest` | MongoDB URI for events (replica set required) |
+| `HHH_MAPS_EVENTS_DB` | `hhh_events` | Events database name |
 
 ## API
 
