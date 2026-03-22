@@ -36,7 +36,9 @@ def location_handler(mock_location_repo: AsyncMock, mock_publisher: AsyncMock) -
 
 @pytest.fixture
 def distance_handler(
-    mock_distance_repo: AsyncMock, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+    mock_distance_repo: AsyncMock,
+    mock_location_repo: AsyncMock,
+    mock_publisher: AsyncMock,
 ) -> DistanceImportHandler:
     return DistanceImportHandler(
         distance_repository=mock_distance_repo,
@@ -48,7 +50,10 @@ def distance_handler(
 class TestLocationImportHandler:
     @pytest.mark.anyio
     async def test_handle_upserts_locations(
-        self, location_handler: LocationImportHandler, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        location_handler: LocationImportHandler,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         event = EventDocument(
             type="locations.bulk_import",
@@ -74,7 +79,10 @@ class TestLocationImportHandler:
 
     @pytest.mark.anyio
     async def test_handle_skips_items_without_name(
-        self, location_handler: LocationImportHandler, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        location_handler: LocationImportHandler,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         event = EventDocument(
             type="locations.bulk_import",
@@ -92,10 +100,14 @@ class TestLocationImportHandler:
 
     @pytest.mark.anyio
     async def test_handle_skips_unchanged(
-        self, location_handler: LocationImportHandler, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        location_handler: LocationImportHandler,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         mock_location_repo.upsert_by_name.return_value = (
-            Location(id="1", name="Stanton"), False,
+            Location(id="1", name="Stanton"),
+            False,
         )
         event = EventDocument(
             type="locations.bulk_import",
@@ -115,8 +127,11 @@ class TestLocationImportHandler:
 class TestDistanceImportHandler:
     @pytest.mark.anyio
     async def test_handle_upserts_distances(
-        self, distance_handler: DistanceImportHandler,
-        mock_distance_repo: AsyncMock, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        distance_handler: DistanceImportHandler,
+        mock_distance_repo: AsyncMock,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         mock_location_repo.search_by_name.side_effect = [
             [Location(id="abc", name="Hurston")],
@@ -149,8 +164,11 @@ class TestDistanceImportHandler:
 
     @pytest.mark.anyio
     async def test_handle_skips_unresolved_locations(
-        self, distance_handler: DistanceImportHandler,
-        mock_distance_repo: AsyncMock, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        distance_handler: DistanceImportHandler,
+        mock_distance_repo: AsyncMock,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         mock_location_repo.search_by_name.return_value = []
 
@@ -174,8 +192,11 @@ class TestDistanceImportHandler:
 
     @pytest.mark.anyio
     async def test_handle_skips_unchanged(
-        self, distance_handler: DistanceImportHandler,
-        mock_distance_repo: AsyncMock, mock_location_repo: AsyncMock, mock_publisher: AsyncMock,
+        self,
+        distance_handler: DistanceImportHandler,
+        mock_distance_repo: AsyncMock,
+        mock_location_repo: AsyncMock,
+        mock_publisher: AsyncMock,
     ) -> None:
         mock_location_repo.search_by_name.side_effect = [
             [Location(id="abc", name="Hurston")],
@@ -199,4 +220,30 @@ class TestDistanceImportHandler:
 
         assert count == 0
         mock_distance_repo.upsert_by_pair.assert_called_once()
+        mock_publisher.publish.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_handle_skips_empty_from_or_to_id(
+        self,
+        distance_handler: DistanceImportHandler,
+        mock_distance_repo: AsyncMock,
+        mock_publisher: AsyncMock,
+    ) -> None:
+        event = EventDocument(
+            type="distances.bulk_import",
+            source_service="dataminer",
+            modified_ids=[],
+            mode=EventMode.FULL_SYNC,
+            metadata={
+                "items": [
+                    {"from_id": "", "to_id": "uex:location:ArcCorp", "distance": 100},
+                    {"from_id": "uex:location:Hurston", "to_id": "", "distance": 200},
+                ]
+            },
+        )
+
+        count = await distance_handler.handle(event)
+
+        assert count == 0
+        mock_distance_repo.upsert_by_pair.assert_not_called()
         mock_publisher.publish.assert_not_called()

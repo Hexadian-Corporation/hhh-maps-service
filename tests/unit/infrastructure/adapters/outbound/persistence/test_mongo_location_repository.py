@@ -119,3 +119,77 @@ class TestMongoLocationRepositoryFindAncestors:
 
         assert len(result) == 1
         assert result[0].id == "sta-1"
+
+
+class TestUpsertByName:
+    @pytest.mark.anyio
+    async def test_inserts_new_location(self) -> None:
+        from bson import ObjectId
+
+        collection = AsyncMock()
+        collection.find_one.return_value = None
+        oid = ObjectId()
+        collection.find_one_and_update.return_value = {
+            "_id": oid,
+            "name": "Hurston",
+            "location_type": "planet",
+            "in_game": True,
+        }
+
+        repo = MongoLocationRepository(collection)
+        entity, changed = await repo.upsert_by_name(
+            Location(name="Hurston", location_type="planet"),
+        )
+
+        assert changed is True
+        assert entity.name == "Hurston"
+        collection.find_one_and_update.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_skips_when_no_key_changes(self) -> None:
+        from bson import ObjectId
+
+        oid = ObjectId()
+        collection = AsyncMock()
+        collection.find_one.return_value = {
+            "_id": oid,
+            "name": "Hurston",
+            "location_type": "planet",
+            "in_game": True,
+        }
+
+        repo = MongoLocationRepository(collection)
+        entity, changed = await repo.upsert_by_name(
+            Location(name="Hurston", location_type="planet"),
+        )
+
+        assert changed is False
+        assert entity.name == "Hurston"
+
+    @pytest.mark.anyio
+    async def test_updates_when_key_field_changed(self) -> None:
+        from bson import ObjectId
+
+        oid = ObjectId()
+        existing = {
+            "_id": oid,
+            "name": "Hurston",
+            "location_type": "planet",
+            "in_game": True,
+        }
+        collection = AsyncMock()
+        collection.find_one.return_value = existing
+        collection.find_one_and_update.return_value = {
+            "_id": oid,
+            "name": "Hurston",
+            "location_type": "moon",
+            "in_game": True,
+        }
+
+        repo = MongoLocationRepository(collection)
+        entity, changed = await repo.upsert_by_name(
+            Location(name="Hurston", location_type="moon"),
+        )
+
+        assert changed is True
+        collection.find_one_and_update.assert_called_once()
